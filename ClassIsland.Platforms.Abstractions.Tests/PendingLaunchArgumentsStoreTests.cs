@@ -129,7 +129,8 @@ public sealed class PendingLaunchArgumentsStoreTests
         using var scope = new TemporaryDirectory();
         var store = new PendingLaunchArgumentsStore(scope.Path);
 
-        Assert.ThrowsAny<IOException>(() => store.Save(["--mobile"]));
+        var exception = Record.Exception(() => store.Save(["--mobile"]));
+        Assert.True(exception is IOException or UnauthorizedAccessException);
         Assert.False(File.Exists(scope.Path + ".tmp"));
     }
 

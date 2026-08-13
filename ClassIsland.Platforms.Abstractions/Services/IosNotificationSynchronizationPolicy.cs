@@ -9,24 +9,36 @@ internal static class IosNotificationSynchronizationPolicy
         IEnumerable<string> requestedIdentifiers,
         IEnumerable<string> identifiersToUpsert,
         IEnumerable<string> pendingIdentifiers,
-        string managedIdentifierPrefix,
+        IEnumerable<string> managedIdentifierPrefixes,
         int maximumPendingCount)
     {
         ArgumentNullException.ThrowIfNull(requestedIdentifiers);
         ArgumentNullException.ThrowIfNull(identifiersToUpsert);
         ArgumentNullException.ThrowIfNull(pendingIdentifiers);
-        ArgumentException.ThrowIfNullOrEmpty(managedIdentifierPrefix);
+        ArgumentNullException.ThrowIfNull(managedIdentifierPrefixes);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumPendingCount);
+
+        var managedPrefixes = managedIdentifierPrefixes
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (managedPrefixes.Length == 0 ||
+            managedPrefixes.Any(string.IsNullOrEmpty))
+        {
+            throw new ArgumentException(
+                "At least one non-empty managed identifier prefix is required.",
+                nameof(managedIdentifierPrefixes));
+        }
+
+        bool IsManaged(string identifier) => managedPrefixes.Any(prefix =>
+            identifier.StartsWith(prefix, StringComparison.Ordinal));
 
         var requested = requestedIdentifiers
             .Distinct(StringComparer.Ordinal)
             .ToArray();
-        if (requested.Any(x => !x.StartsWith(
-                managedIdentifierPrefix,
-                StringComparison.Ordinal)))
+        if (requested.Any(x => !IsManaged(x)))
         {
             throw new ArgumentException(
-                "Requested identifiers must belong to the managed prefix.",
+                "Requested identifiers must belong to a managed prefix.",
                 nameof(requestedIdentifiers));
         }
 
@@ -53,9 +65,7 @@ internal static class IosNotificationSynchronizationPolicy
                 nameof(identifiersToUpsert));
         }
 
-        var nonManagedPendingCount = pending.Count(x => !x.StartsWith(
-            managedIdentifierPrefix,
-            StringComparison.Ordinal));
+        var nonManagedPendingCount = pending.Count(x => !IsManaged(x));
         if (nonManagedPendingCount + requested.Length > maximumPendingCount)
         {
             throw new InvalidOperationException(
@@ -63,8 +73,7 @@ internal static class IosNotificationSynchronizationPolicy
         }
 
         var obsolete = pending
-            .Where(x => x.StartsWith(managedIdentifierPrefix, StringComparison.Ordinal) &&
-                        !requestedSet.Contains(x))
+            .Where(x => IsManaged(x) && !requestedSet.Contains(x))
             .OrderByDescending(x => x, StringComparer.Ordinal)
             .ToArray();
         var availableSlots = Math.Max(0, maximumPendingCount - pending.Length);

@@ -10,6 +10,7 @@
 		A10000000000000000000001 /* ClassIslandActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* ClassIslandActivityAttributes.swift */; };
 		A10000000000000000000002 /* ClassIslandLiveActivityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* ClassIslandLiveActivityBridge.swift */; };
 		A10000000000000000000003 /* ClassIslandLiveActivityBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* ClassIslandLiveActivityBridge.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		A1000000000000000000000D /* ClassIslandAutomationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000D /* ClassIslandAutomationIntent.swift */; };
 		A10000000000000000000004 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* ActivityKit.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		A10000000000000000000005 /* ClassIslandActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* ClassIslandActivityAttributes.swift */; };
 		A10000000000000000000006 /* ClassIslandLiveActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* ClassIslandLiveActivityBundle.swift */; };
@@ -17,6 +18,9 @@
 		A10000000000000000000008 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* ActivityKit.framework */; };
 		A10000000000000000000009 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* SwiftUI.framework */; };
 		A1000000000000000000000A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000A /* WidgetKit.framework */; };
+		A1000000000000000000000B /* ClassIslandAutomationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000D /* ClassIslandAutomationIntent.swift */; };
+		A1000000000000000000000E /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000E /* AppIntents.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		A1000000000000000000000C /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000E /* AppIntents.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +36,8 @@
 		A2000000000000000000000A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		A2000000000000000000000B /* ClassIslandLiveActivityBridge.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ClassIslandLiveActivityBridge.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		A2000000000000000000000C /* ClassIslandLiveActivityExtension.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = ClassIslandLiveActivityExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A2000000000000000000000D /* ClassIslandAutomationIntent.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ClassIslandAutomationIntent.swift; sourceTree = "<group>"; };
+		A2000000000000000000000E /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -40,6 +46,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000000000000000000004 /* ActivityKit.framework in Frameworks */,
+				A1000000000000000000000E /* AppIntents.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -50,6 +57,7 @@
 				A10000000000000000000008 /* ActivityKit.framework in Frameworks */,
 				A10000000000000000000009 /* SwiftUI.framework in Frameworks */,
 				A1000000000000000000000A /* WidgetKit.framework in Frameworks */,
+				A1000000000000000000000C /* AppIntents.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -89,6 +97,7 @@
 			children = (
 				A20000000000000000000004 /* ClassIslandLiveActivityBundle.swift */,
 				A20000000000000000000005 /* ClassIslandLiveActivityWidget.swift */,
+				A2000000000000000000000D /* ClassIslandAutomationIntent.swift */,
 				A20000000000000000000006 /* Info.plist */,
 				A20000000000000000000007 /* ClassIslandLiveActivityExtension.entitlements */,
 			);
@@ -101,6 +110,7 @@
 				A20000000000000000000008 /* ActivityKit.framework */,
 				A20000000000000000000009 /* SwiftUI.framework */,
 				A2000000000000000000000A /* WidgetKit.framework */,
+				A2000000000000000000000E /* AppIntents.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -224,6 +234,7 @@
 			files = (
 				A10000000000000000000001 /* ClassIslandActivityAttributes.swift in Sources */,
 				A10000000000000000000002 /* ClassIslandLiveActivityBridge.swift in Sources */,
+				A1000000000000000000000D /* ClassIslandAutomationIntent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -234,6 +245,7 @@
 				A10000000000000000000005 /* ClassIslandActivityAttributes.swift in Sources */,
 				A10000000000000000000006 /* ClassIslandLiveActivityBundle.swift in Sources */,
 				A10000000000000000000007 /* ClassIslandLiveActivityWidget.swift in Sources */,
+				A1000000000000000000000B /* ClassIslandAutomationIntent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

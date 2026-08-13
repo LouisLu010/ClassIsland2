@@ -4,10 +4,12 @@ using Avalonia.Threading;
 using ClassIsland.Core;
 using ClassIsland.Core.Abstractions.Services;
 using ClassIsland.Core.Enums;
+using ClassIsland.Core.Models.Automation;
 using ClassIsland.iOS.Services.Platform;
 using ClassIsland.Platforms.Abstraction;
 using ClassIsland.Platforms.Abstraction.Services;
 using ClassIsland.Services;
+using ClassIsland.Services.Automation;
 using ClassIsland.Shared;
 using ClassIsland.Shared.Models.Profile;
 using Foundation;
@@ -16,7 +18,7 @@ using UIKit;
 namespace ClassIsland.iOS.Services.Notifications;
 
 /// <summary>
-/// 在启动和前后台切换时滚动同步课程本地通知；通知提交后不依赖应用继续运行。
+/// 在启动和前后台切换时滚动同步托管本地通知；通知提交后不依赖应用继续运行。
 /// </summary>
 internal sealed class IosLessonsNotificationCoordinator : IDisposable
 {
@@ -24,6 +26,7 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
     private static readonly TimeSpan AttachedSettingsScanInterval = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan RollingScheduleRefreshInterval = TimeSpan.FromHours(6);
     private static readonly TimeSpan FailureRetryDelay = TimeSpan.FromSeconds(5);
+    private const int MaximumAutomationPlanningHorizonDays = 60;
 
     private readonly IosNotificationAuthorizationService _authorizationService;
     private readonly LessonPreparationNotificationTimeline _lessonPreparationTimeline;
@@ -38,6 +41,8 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
     private readonly HashSet<INotifyPropertyChanged> _attachedSettingsSources = [];
     private readonly HashSet<INotifyCollectionChanged> _collectionChangeSources = [];
     private readonly HashSet<ClassPlan> _classPlanChangeSources = [];
+    private readonly Dictionary<Workflow, AutomationWorkflowChangeMonitor>
+        _automationChangeMonitors = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<TimeLayout> _timeLayoutChangeSources = [];
     private NSObject? _foregroundObserver;
     private NSObject? _backgroundObserver;
@@ -46,6 +51,7 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
     private IExactTimeService? _exactTimeService;
     private SettingsService? _settingsService;
     private INotificationHostService? _notificationHostService;
+    private IAutomationService? _automationService;
     private IosLessonNotificationScheduleFactory? _scheduleFactory;
     private IosNotificationQueueConsumer? _queueConsumer;
     private IReadOnlyList<IosLessonNotificationRequest>? _lastRequests;
@@ -129,6 +135,7 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
         _notificationHostService = IAppHost.GetService<INotificationHostService>();
         _exactTimeService = IAppHost.GetService<IExactTimeService>();
         _settingsService = IAppHost.GetService<SettingsService>();
+        _automationService = IAppHost.GetService<IAutomationService>();
         var queueConsumer = new IosNotificationQueueConsumer(
             _authorizationService,
             _settingsService,
@@ -206,7 +213,7 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
         }
         catch (Exception exception)
         {
-            Console.Error.WriteLine($"同步 iOS/iPadOS 课程通知时发生异常：{exception}");
+            Console.Error.WriteLine($"同步 iOS/iPadOS 托管通知时发生异常：{exception}");
             ScheduleFailureRetry();
         }
         finally
@@ -252,10 +259,7 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
             return;
         }
 
-        var schedulingEnabled = scheduleFactory.IsSchedulingEnabled;
-        IReadOnlyList<IosLessonNotificationRequest> candidateRequests = schedulingEnabled
-            ? scheduleFactory.Create()
-            : Array.Empty<IosLessonNotificationRequest>();
+        var candidateRequests = CreateCandidateRequests(scheduleFactory);
         var shouldUseSystemNotifications = candidateRequests.Count > 0;
         var authorized = shouldUseSystemNotifications &&
                          await _authorizationService.RequestAuthorizationIfNeededAsync();
@@ -306,6 +310,31 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
         }
     }
 
+    private IReadOnlyList<IosLessonNotificationRequest> CreateCandidateRequests(
+        IosLessonNotificationScheduleFactory scheduleFactory)
+    {
+        var requests = scheduleFactory.IsSchedulingEnabled
+            ? scheduleFactory.Create().ToList()
+            : [];
+        var settings = _settingsService?.Settings;
+        if (settings?.IsAutomationEnabled != true ||
+            _automationService == null ||
+            _exactTimeService == null)
+        {
+            return requests;
+        }
+
+        var logicalNow = _exactTimeService.GetCurrentLocalDateTime();
+        requests.AddRange(IosAutomationNotificationScheduleCompiler.Compile(
+            _automationService.Workflows,
+            logicalNow,
+            DateTimeOffset.Now,
+            logicalNow.AddDays(MaximumAutomationPlanningHorizonDays),
+            IosLessonNotificationScheduleFactory.MaximumPendingNotifications,
+            settings.AllowNotificationSound));
+        return requests;
+    }
+
     private void QueueBackgroundRefresh()
     {
         if (!_isWorkStarted ||
@@ -316,7 +345,7 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
         }
 
         var lease = new BackgroundTaskLease(UIApplication.SharedApplication);
-        if (!lease.TryStart("ClassIsland lesson notification refresh"))
+        if (!lease.TryStart("ClassIsland managed notification refresh"))
         {
             lease.Dispose();
             Interlocked.Exchange(ref _backgroundRefreshActive, 0);
@@ -346,7 +375,7 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
         }
         catch (Exception exception)
         {
-            Console.Error.WriteLine($"iOS/iPadOS 退后台前同步课程通知时发生异常：{exception}");
+            Console.Error.WriteLine($"iOS/iPadOS 退后台前同步托管通知时发生异常：{exception}");
         }
         finally
         {
@@ -383,7 +412,8 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
         DetachChangeSubscriptions();
         if (_settingsService == null ||
             _profileService == null ||
-            _scheduleFactory == null)
+            _scheduleFactory == null ||
+            _automationService == null)
         {
             return;
         }
@@ -407,6 +437,18 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
         foreach (var source in settings.NotificationChannelsNotifySettings.Values)
         {
             AddPropertyChangeSource(source);
+        }
+
+        if (_automationService is INotifyPropertyChanged automationService)
+        {
+            AddPropertyChangeSource(automationService);
+        }
+        AddCollectionChangeSource(_automationService.Workflows);
+        foreach (var workflow in _automationService.Workflows)
+        {
+            var monitor = new AutomationWorkflowChangeMonitor(workflow);
+            monitor.Changed += AutomationWorkflowChangeMonitorOnChanged;
+            _automationChangeMonitors.Add(workflow, monitor);
         }
 
         var profile = _profileService.Profile;
@@ -494,6 +536,8 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
                  or nameof(Profile.TimeLayouts)
                  or nameof(Profile.Subjects)
                  or nameof(Profile.OrderedSchedules)) ||
+            (ReferenceEquals(sender, _automationService) &&
+             e.PropertyName == nameof(IAutomationService.Workflows)) ||
             (sender is ClassPlan && e.PropertyName == nameof(ClassPlan.TimeRule)) ||
             (sender is TimeLayout && e.PropertyName == nameof(TimeLayout.Layouts)))
         {
@@ -508,6 +552,9 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
         RebuildChangeSubscriptions();
         QueueRefreshDebounced();
     }
+
+    private void AutomationWorkflowChangeMonitorOnChanged(object? sender, EventArgs e) =>
+        QueueRefreshDebounced();
 
     private void ClassPlanOnClassesChanged(object? sender, EventArgs e)
     {
@@ -647,6 +694,13 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
         }
         _collectionChangeSources.Clear();
 
+        foreach (var monitor in _automationChangeMonitors.Values)
+        {
+            monitor.Changed -= AutomationWorkflowChangeMonitorOnChanged;
+            monitor.Dispose();
+        }
+        _automationChangeMonitors.Clear();
+
         foreach (var classPlan in _classPlanChangeSources)
         {
             classPlan.ClassesChanged -= ClassPlanOnClassesChanged;
@@ -699,6 +753,7 @@ internal sealed class IosLessonsNotificationCoordinator : IDisposable
         _exactTimeService = null;
         _settingsService = null;
         _notificationHostService = null;
+        _automationService = null;
         _scheduleFactory = null;
         _isStarted = false;
         _isWorkStarted = false;

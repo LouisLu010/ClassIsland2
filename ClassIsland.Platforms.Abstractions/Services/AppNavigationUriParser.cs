@@ -16,7 +16,8 @@ internal static class AppNavigationUriParser
 
     public static bool TryParseClassIslandUri(string? value, out Uri? uri)
     {
-        if (!Uri.TryCreate(value, UriKind.Absolute, out var parsed) ||
+        if (value?.Contains('%') == true ||
+            !Uri.TryCreate(value, UriKind.Absolute, out var parsed) ||
             !string.Equals(
                 parsed.Scheme,
                 "classisland",
@@ -57,6 +58,13 @@ internal static class AppNavigationUriParser
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         return segments.Length > 0 &&
                segments.All(segment => segment is not "." and not "..") &&
-               SafeAppNavigationRoots.Contains(segments[0]);
+               (SafeAppNavigationRoots.Contains(segments[0]) ||
+                IsSafeAutomationPath(segments));
     }
+
+    private static bool IsSafeAutomationPath(IReadOnlyList<string> segments) =>
+        segments.Count >= 4 &&
+        string.Equals(segments[0], "api", StringComparison.Ordinal) &&
+        string.Equals(segments[1], "automation", StringComparison.Ordinal) &&
+        segments[2] is "run" or "revert";
 }

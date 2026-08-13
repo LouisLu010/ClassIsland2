@@ -40,6 +40,7 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
     private readonly IosNotificationCenterDelegate _notificationCenterDelegate = new();
     private App? _app;
     private Uri? _pendingNavigationUri;
+    private NSObject? _automationIntentObserver;
     private bool _isAppNavigationReady;
 
     protected override AppBuilder CreateAppBuilder()
@@ -51,6 +52,9 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
         }
 
         UNUserNotificationCenter.Current.Delegate = _notificationCenterDelegate;
+        _automationIntentObserver = NSNotificationCenter.DefaultCenter.AddObserver(
+            new NSString("ClassIslandAutomationIntentRun"),
+            _ => QueuePendingAutomationNavigation());
         PlatformServices.AppLifetimeService = new IosAppLifetimeService(
             PrepareForManualTerminationAsync,
             ResumeAfterManualTerminationCanceled);
@@ -137,19 +141,42 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
 #else
             Dispatcher.UIThread.Post(app.Init);
 #endif
+            QueuePendingAutomationNavigation();
         });
     }
 
     private void OnActivated(object? sender, ActivatedEventArgs args)
     {
-        if (args is not ProtocolActivatedEventArgs protocolArguments ||
-            !AppNavigationUriParser.TryParseClassIslandUri(
+        if (args is ProtocolActivatedEventArgs protocolArguments &&
+            AppNavigationUriParser.TryParseClassIslandUri(
                 protocolArguments.Uri.AbsoluteUri,
                 out var uri))
+        {
+            if (!_isAppNavigationReady)
+            {
+                _pendingNavigationUri = uri;
+                return;
+            }
+
+            QueueNavigation(uri!);
+            return;
+        }
+
+        QueuePendingAutomationNavigation();
+    }
+
+    private void QueuePendingAutomationNavigation()
+    {
+        const string pendingAutomationUriKey =
+            "classisland.shortcuts.pending-automation-uri";
+        var uriValue = NSUserDefaults.StandardUserDefaults.StringForKey(
+            pendingAutomationUriKey);
+        if (!AppNavigationUriParser.TryParseClassIslandUri(uriValue, out var uri))
         {
             return;
         }
 
+        NSUserDefaults.StandardUserDefaults.RemoveObject(pendingAutomationUriKey);
         if (!_isAppNavigationReady)
         {
             _pendingNavigationUri = uri;
@@ -260,6 +287,14 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
             {
                 _activatableLifetime.Activated -= OnActivated;
                 _activatableLifetime = null;
+            }
+
+            if (_automationIntentObserver != null)
+            {
+                NSNotificationCenter.DefaultCenter.RemoveObserver(
+                    _automationIntentObserver);
+                _automationIntentObserver.Dispose();
+                _automationIntentObserver = null;
             }
 
             if (_app != null)

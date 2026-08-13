@@ -12,3 +12,4 @@ using System.Windows;
 [assembly: InternalsVisibleTo("ClassIsland.Android")]
 [assembly: InternalsVisibleTo("ClassIsland.iOS")]
 [assembly: InternalsVisibleTo("ClassIsland.Hmos")]
+[assembly: InternalsVisibleTo("ClassIsland.Platforms.Abstractions.Tests")]

@@ -12,7 +12,7 @@ public sealed class IosNotificationSynchronizationPolicyTests
             ["classisland.lessons.keep", "classisland.lessons.new", "classisland.lessons.keep"],
             ["classisland.lessons.keep", "classisland.lessons.new"],
             ["classisland.lessons.keep", "classisland.lessons.old", "other.pending"],
-            "classisland.lessons.",
+            ["classisland.lessons."],
             64);
 
         Assert.Equal(
@@ -26,6 +26,26 @@ public sealed class IosNotificationSynchronizationPolicyTests
             x => Assert.Null(x.ObsoleteIdentifierToRemoveBeforeUpsert));
         Assert.Equal(
             ["classisland.lessons.old"],
+            plan.ObsoleteIdentifiersToRemoveAfterUpsert);
+    }
+
+    [Fact]
+    public void CreatePlan_ManagesMultipleScheduledNotificationPrefixes()
+    {
+        var plan = IosNotificationSynchronizationPolicy.CreatePlan(
+            ["classisland.lessons.keep", "classisland.automation.new"],
+            ["classisland.automation.new"],
+            [
+                "classisland.lessons.keep",
+                "classisland.lessons.old",
+                "classisland.automation.old",
+                "classisland.notification.fallback"
+            ],
+            ["classisland.lessons.", "classisland.automation."],
+            64);
+
+        Assert.Equal(
+            ["classisland.lessons.old", "classisland.automation.old"],
             plan.ObsoleteIdentifiersToRemoveAfterUpsert);
     }
 
@@ -44,7 +64,7 @@ public sealed class IosNotificationSynchronizationPolicyTests
             requested,
             requested,
             pending,
-            "classisland.lessons.",
+            ["classisland.lessons."],
             64);
 
         Assert.Equal(60, plan.UpsertSteps.Count);
@@ -84,7 +104,7 @@ public sealed class IosNotificationSynchronizationPolicyTests
             requested,
             requested,
             pending,
-            "classisland.lessons.",
+            ["classisland.lessons."],
             64);
 
         Assert.All(
@@ -130,7 +150,7 @@ public sealed class IosNotificationSynchronizationPolicyTests
                 requested,
                 requested,
                 Enumerable.Range(0, 5).Select(x => $"other.{x}"),
-                "classisland.lessons.",
+                ["classisland.lessons."],
                 64));
     }
 
@@ -139,34 +159,36 @@ public sealed class IosNotificationSynchronizationPolicyTests
     {
         Assert.Throws<ArgumentNullException>(() =>
             IosNotificationSynchronizationPolicy.CreatePlan(
-                null!, [], [], "classisland.lessons.", 64));
+                null!, [], [], ["classisland.lessons."], 64));
         Assert.Throws<ArgumentNullException>(() =>
             IosNotificationSynchronizationPolicy.CreatePlan(
-                [], null!, [], "classisland.lessons.", 64));
+                [], null!, [], ["classisland.lessons."], 64));
         Assert.Throws<ArgumentNullException>(() =>
             IosNotificationSynchronizationPolicy.CreatePlan(
-                [], [], null!, "classisland.lessons.", 64));
+                [], [], null!, ["classisland.lessons."], 64));
+        Assert.Throws<ArgumentNullException>(() =>
+            IosNotificationSynchronizationPolicy.CreatePlan([], [], [], null!, 64));
         Assert.Throws<ArgumentException>(() =>
-            IosNotificationSynchronizationPolicy.CreatePlan([], [], [], "", 64));
+            IosNotificationSynchronizationPolicy.CreatePlan([], [], [], [""], 64));
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             IosNotificationSynchronizationPolicy.CreatePlan(
-                [], [], [], "classisland.lessons.", 0));
+                [], [], [], ["classisland.lessons."], 0));
         Assert.Throws<ArgumentException>(() =>
             IosNotificationSynchronizationPolicy.CreatePlan(
-                ["other.request"], [], [], "classisland.lessons.", 64));
+                ["other.request"], [], [], ["classisland.lessons."], 64));
         Assert.Throws<ArgumentException>(() =>
             IosNotificationSynchronizationPolicy.CreatePlan(
                 ["classisland.lessons.requested"],
                 ["classisland.lessons.unrequested"],
                 [],
-                "classisland.lessons.",
+                ["classisland.lessons."],
                 64));
         Assert.Throws<ArgumentException>(() =>
             IosNotificationSynchronizationPolicy.CreatePlan(
                 ["classisland.lessons.requested"],
                 [],
                 [],
-                "classisland.lessons.",
+                ["classisland.lessons."],
                 64));
         Assert.Throws<ArgumentNullException>(() =>
             IosNotificationSynchronizationPolicy.GetMissingIdentifiers(null!, []));
