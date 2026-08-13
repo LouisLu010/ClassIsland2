@@ -12,6 +12,12 @@ public sealed class IosAutomationNotificationScheduleCompilerTests
     private static readonly DateTime LogicalNow = new(2026, 8, 13, 7, 0, 0);
     private static readonly DateTimeOffset SystemNow =
         new(2026, 8, 13, 7, 0, 0, TimeSpan.FromHours(8));
+    private static readonly TimeZoneInfo ChinaStandardTime =
+        TimeZoneInfo.CreateCustomTimeZone(
+            "Test/China",
+            TimeSpan.FromHours(8),
+            "Test China Time",
+            "Test China Time");
 
     [Fact]
     public void Compile_CreatesStableNativeRequestsForStrictCronNotificationWorkflow()
@@ -24,7 +30,8 @@ public sealed class IosAutomationNotificationScheduleCompilerTests
             SystemNow,
             LogicalNow.AddDays(2),
             10,
-            allowNotificationSound: true);
+            allowNotificationSound: true,
+            timeZone: ChinaStandardTime);
 
         Assert.Collection(
             requests,
@@ -71,7 +78,8 @@ public sealed class IosAutomationNotificationScheduleCompilerTests
             SystemNow,
             LogicalNow.AddDays(2),
             10,
-            allowNotificationSound: true);
+            allowNotificationSound: true,
+            timeZone: ChinaStandardTime);
 
         Assert.Empty(requests);
     }
@@ -88,7 +96,8 @@ public sealed class IosAutomationNotificationScheduleCompilerTests
             SystemNow,
             LogicalNow.AddDays(3),
             2,
-            allowNotificationSound: false);
+            allowNotificationSound: false,
+            timeZone: ChinaStandardTime);
 
         Assert.Equal(2, requests.Count);
         Assert.True(requests[0].FireAt < requests[1].FireAt);
@@ -106,7 +115,8 @@ public sealed class IosAutomationNotificationScheduleCompilerTests
             SystemNow,
             LogicalNow.AddDays(2),
             10,
-            allowNotificationSound: true);
+            allowNotificationSound: true,
+            timeZone: ChinaStandardTime);
 
         Assert.Empty(requests);
     }

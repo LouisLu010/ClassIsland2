@@ -26,7 +26,8 @@ internal static class IosAutomationNotificationScheduleCompiler
         DateTimeOffset systemNow,
         DateTime logicalUntilExclusive,
         int maximumRequestCount,
-        bool allowNotificationSound)
+        bool allowNotificationSound,
+        TimeZoneInfo? timeZone = null)
     {
         ArgumentNullException.ThrowIfNull(workflows);
         if (logicalUntilExclusive <= logicalNow)
@@ -77,7 +78,8 @@ internal static class IosAutomationNotificationScheduleCompiler
                 var fireAt = IosNotificationTimeMapper.ToSystemTime(
                     nextOccurrence,
                     logicalNow,
-                    systemNow);
+                    systemNow,
+                    timeZone);
                 for (var actionIndex = 0;
                      actionIndex < notificationSettings.Count &&
                      workflowRequestCount < maximumRequestCount;
