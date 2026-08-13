@@ -8,25 +8,49 @@ private let pendingAutomationUriKey =
     "classisland.shortcuts.pending-automation-uri"
 
 @available(iOS 16.0, *)
+struct AutomationUriSuffix: AppEntity {
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(
+        name: "URI 后缀"
+    )
+    static let defaultQuery = AutomationUriSuffixQuery()
+
+    let id: String
+
+    var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(title: "\(id)")
+    }
+}
+
+@available(iOS 16.0, *)
+struct AutomationUriSuffixQuery: EntityStringQuery {
+    func entities(for identifiers: [String]) async throws -> [AutomationUriSuffix] {
+        identifiers.map(AutomationUriSuffix.init(id:))
+    }
+
+    func entities(matching string: String) async throws -> [AutomationUriSuffix] {
+        [AutomationUriSuffix(id: string)]
+    }
+}
+
+@available(iOS 16.0, *)
 struct RunClassIslandAutomationIntent: OpenIntent {
     static let title: LocalizedStringResource = "运行 ClassIsland 自动化"
     static let description = IntentDescription(
         "通过“调用 Uri 时”触发器运行一个 ClassIsland 自动化工作流。"
     )
 
-
     @Parameter(
         title: "URI 后缀",
         description: "填写自动化工作流中“调用 Uri 时”触发器配置的 URI 后缀。"
     )
-    var target: String
+    var target: AutomationUriSuffix
 
     static var parameterSummary: some ParameterSummary {
         Summary("运行 ClassIsland 自动化 \(\.$target)")
     }
 
     func perform() async throws -> some IntentResult {
-        let suffix = try Self.validate(target)
+        let suffix = try Self.validate(target.id)
         let uri = "classisland://app/api/automation/run/\(suffix)"
         UserDefaults.standard.set(uri, forKey: pendingAutomationUriKey)
         NotificationCenter.default.post(
