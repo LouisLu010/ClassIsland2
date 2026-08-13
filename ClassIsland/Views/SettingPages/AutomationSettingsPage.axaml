@@ -7,6 +7,7 @@
                      xmlns:fa="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
                      xmlns:local="clr-namespace:ClassIsland.Views.SettingPages"
                      xmlns:automation="clr-namespace:ClassIsland.Core.Controls.Automation;assembly=ClassIsland.Core"
+                     xmlns:helpers="clr-namespace:ClassIsland.Core.Helpers;assembly=ClassIsland.Core"
                      xmlns:controls="clr-namespace:ClassIsland.Controls"
                      xmlns:enums="clr-namespace:ClassIsland.Shared.Enums;assembly=ClassIsland.Shared"
                      xmlns:models="clr-namespace:ClassIsland.Core.Models.Automation;assembly=ClassIsland.Core">
@@ -121,6 +122,14 @@
                                                    FontSize="13"
                                                    FontWeight="Medium"
                                                    TextWrapping="Wrap" />
+                                        <ci:IconText Grid.Column="2"
+                                                     HorizontalAlignment="Right"
+                                                     Margin="0 0 4 0"
+                                                     Glyph="&#xF430;"
+                                                     Text=""
+                                                     Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                                     IsVisible="{Binding HasPlatformCompatibilityIssues}"
+                                                     ToolTip.Tip="{Binding PlatformCompatibilitySummary}" />
 
                                         <!-- <fa:ProgressRing Grid.Column="2" -->
                                         <!--                  Height="25" -->
@@ -194,7 +203,8 @@
                                   ToolTip.Tip="该自动化是否启用恢复。"
                                   IsChecked="{Binding ActionSet.IsRevertEnabled}" />
 
-                        <automation:ActionSetRunningControl ActionSet="{Binding ActionSet}"/>
+                        <automation:ActionSetRunningControl ActionSet="{Binding ActionSet}"
+                                                            IsEnabled="{Binding !HasPlatformCompatibilityIssues}"/>
 
                         <Separator Width="1"
                                    Height="25"
@@ -238,6 +248,17 @@
                                                     <Setter Property="Margin" Value="2 2 2 10" />
                                                 </Style>
                                             </StackPanel.Styles>
+                                            <fa:FAInfoBar Title="iOS 后台运行限制"
+                                                          Message="iOS 在应用进入后台或被系统挂起后不会继续运行自动化。仅“Cron 定时触发器 → 系统通知”工作流可转为原生定时通知；其余工作流只会在 ClassIsland 保持活跃时执行。"
+                                                          Severity="Warning"
+                                                          IsOpen="True"
+                                                          IsVisible="{x:Static helpers:PlatformHelper.IsAppleMobile}"
+                                                          IsClosable="False" />
+                                            <fa:FAInfoBar Title="当前平台无法运行此工作流"
+                                                          Message="{Binding PlatformCompatibilitySummary}"
+                                                          Severity="Warning"
+                                                          IsOpen="{Binding HasPlatformCompatibilityIssues}"
+                                                          IsClosable="False" />
                                             <!--  v2: 触发器编辑  -->
                                             <Expander Classes="compact stretch-header">
                                                 <Expander.Header>

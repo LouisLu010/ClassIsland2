@@ -25,6 +25,10 @@ public class ActionService : IActionService
         if (actionSet.IsWorking) return;
 
         MigrateActionSet(actionSet);
+        if (!IsActionSetCompatible(actionSet))
+        {
+            return;
+        }
 
         Logger.LogTrace("触发行动组“{行动组}”。", actionSet.Name);
         actionSet.SetStartRunning(true);
@@ -52,6 +56,10 @@ public class ActionService : IActionService
         if (actionSet.IsWorking) return;
 
         MigrateActionSet(actionSet);
+        if (!IsActionSetCompatible(actionSet))
+        {
+            return;
+        }
 
         Logger.LogTrace("恢复行动组“{行动组}”。", actionSet.Name);
         actionSet.SetStartRunning(false);
@@ -203,12 +211,32 @@ public class ActionService : IActionService
         }
     }
 
+    private bool IsActionSetCompatible(ActionSet actionSet)
+    {
+        var issues = AutomationCompatibilityService.Evaluate(actionSet);
+        if (issues.Count == 0)
+        {
+            return true;
+        }
+
+        Logger.LogWarning(
+            "行动组“{行动组}”包含当前平台不支持的行动，已阻止整个行动组执行：{原因}",
+            actionSet.Name,
+            string.Join("；", issues.Select(x => x.Message)));
+        return false;
+    }
+
+    private IAutomationCompatibilityService AutomationCompatibilityService { get; }
+
     readonly ILogger<ActionService> Logger;
 
     /// <inheritdoc cref="IActionService" />
-    public ActionService(ILogger<ActionService> logger)
+    public ActionService(
+        ILogger<ActionService> logger,
+        IAutomationCompatibilityService automationCompatibilityService)
     {
         Logger = logger;
+        AutomationCompatibilityService = automationCompatibilityService;
         ActionMenuTree.Add(
             new ActionMenuTreeGroup("应用设置", "\uef27",
             SettingItem("选择应用设置…", "\ue454", ""),

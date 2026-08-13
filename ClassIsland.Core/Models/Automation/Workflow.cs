@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Text.Json.Serialization;
 using ClassIsland.Shared.Models.Automation;
 using CommunityToolkit.Mvvm.ComponentModel;
 namespace ClassIsland.Core.Models.Automation;
@@ -27,6 +28,19 @@ public partial class Workflow : ObservableRecipient
     /// 行动组。
     /// </summary>
     [ObservableProperty] ActionSet _actionSet = new();
+
+    [property: JsonIgnore]
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPlatformCompatibilityIssues))]
+    [NotifyPropertyChangedFor(nameof(PlatformCompatibilitySummary))]
+    IReadOnlyList<AutomationCompatibilityIssue> _platformCompatibilityIssues = [];
+
+    [JsonIgnore]
+    public bool HasPlatformCompatibilityIssues => PlatformCompatibilityIssues.Count > 0;
+
+    [JsonIgnore]
+    public string PlatformCompatibilitySummary =>
+        string.Join(Environment.NewLine, PlatformCompatibilityIssues.Select(x => x.Message));
 
     internal void Unload() => Unloading?.Invoke(this, EventArgs.Empty);
     internal event EventHandler? Unloading;
