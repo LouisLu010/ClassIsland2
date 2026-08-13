@@ -147,22 +147,26 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
 
     private void OnActivated(object? sender, ActivatedEventArgs args)
     {
-        if (args is ProtocolActivatedEventArgs protocolArguments &&
-            AppNavigationUriParser.TryParseClassIslandUri(
-                protocolArguments.Uri.AbsoluteUri,
-                out var uri))
+        if (args is not ProtocolActivatedEventArgs protocolArguments)
         {
-            if (!_isAppNavigationReady)
-            {
-                _pendingNavigationUri = uri;
-                return;
-            }
-
-            QueueNavigation(uri!);
+            QueuePendingAutomationNavigation();
             return;
         }
 
-        QueuePendingAutomationNavigation();
+        if (!AppNavigationUriParser.TryParseClassIslandUri(
+                protocolArguments.Uri.AbsoluteUri,
+                out var uri))
+        {
+            return;
+        }
+
+        if (!_isAppNavigationReady)
+        {
+            _pendingNavigationUri = uri;
+            return;
+        }
+
+        QueueNavigation(uri!);
     }
 
     private void QueuePendingAutomationNavigation()
