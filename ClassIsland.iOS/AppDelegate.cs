@@ -11,6 +11,7 @@ using ClassIsland.Core.Abstractions.Services;
 using ClassIsland.Core.Abstractions.Services.UI;
 using ClassIsland.Core.Controls.IconSources;
 using ClassIsland.Extensions;
+using ClassIsland.iOS.Services.Automation;
 using ClassIsland.iOS.Services.LiveActivities;
 using ClassIsland.iOS.Services.Notifications;
 using ClassIsland.iOS.Services.Platform;
@@ -33,6 +34,7 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
 {
     private LessonsLiveActivityCoordinator? _liveActivityCoordinator;
     private IosLessonsNotificationCoordinator? _lessonsNotificationCoordinator;
+    private IosAutomationShortcutCatalogCoordinator? _automationShortcutCatalogCoordinator;
     private IosSystemEventsService? _systemEventsService;
     private readonly LessonPreparationNotificationTimeline _lessonPreparationTimeline = new();
     private IActivatableLifetime? _activatableLifetime;
@@ -121,6 +123,10 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
                 _notificationAuthorizationService,
                 _lessonPreparationTimeline);
             _lessonsNotificationCoordinator.Start();
+
+            _automationShortcutCatalogCoordinator =
+                new IosAutomationShortcutCatalogCoordinator();
+            _automationShortcutCatalogCoordinator.Start();
 
 #if DEVELOPER_PREVIEW
             Dispatcher.UIThread.Post(async () =>
@@ -316,6 +322,8 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
 
             _lessonsNotificationCoordinator?.Dispose();
             _lessonsNotificationCoordinator = null;
+            _automationShortcutCatalogCoordinator?.Dispose();
+            _automationShortcutCatalogCoordinator = null;
             _liveActivityCoordinator?.Dispose();
             _liveActivityCoordinator = null;
             _systemEventsService?.Dispose();

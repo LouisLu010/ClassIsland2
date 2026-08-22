@@ -18,9 +18,7 @@
 		A10000000000000000000008 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* ActivityKit.framework */; };
 		A10000000000000000000009 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* SwiftUI.framework */; };
 		A1000000000000000000000A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000A /* WidgetKit.framework */; };
-		A1000000000000000000000B /* ClassIslandAutomationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000D /* ClassIslandAutomationIntent.swift */; };
 		A1000000000000000000000E /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000E /* AppIntents.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
-		A1000000000000000000000C /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000E /* AppIntents.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -57,7 +55,6 @@
 				A10000000000000000000008 /* ActivityKit.framework in Frameworks */,
 				A10000000000000000000009 /* SwiftUI.framework in Frameworks */,
 				A1000000000000000000000A /* WidgetKit.framework in Frameworks */,
-				A1000000000000000000000C /* AppIntents.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -88,6 +85,7 @@
 			children = (
 				A20000000000000000000002 /* ClassIslandLiveActivityBridge.swift */,
 				A20000000000000000000003 /* ClassIslandLiveActivityBridge.h */,
+				A2000000000000000000000D /* ClassIslandAutomationIntent.swift */,
 			);
 			path = Bridge;
 			sourceTree = "<group>";
@@ -97,7 +95,6 @@
 			children = (
 				A20000000000000000000004 /* ClassIslandLiveActivityBundle.swift */,
 				A20000000000000000000005 /* ClassIslandLiveActivityWidget.swift */,
-				A2000000000000000000000D /* ClassIslandAutomationIntent.swift */,
 				A20000000000000000000006 /* Info.plist */,
 				A20000000000000000000007 /* ClassIslandLiveActivityExtension.entitlements */,
 			);
@@ -245,7 +242,6 @@
 				A10000000000000000000005 /* ClassIslandActivityAttributes.swift in Sources */,
 				A10000000000000000000006 /* ClassIslandLiveActivityBundle.swift in Sources */,
 				A10000000000000000000007 /* ClassIslandLiveActivityWidget.swift in Sources */,
-				A1000000000000000000000B /* ClassIslandAutomationIntent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
