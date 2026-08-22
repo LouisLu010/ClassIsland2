@@ -18,6 +18,7 @@ using Avalonia.VisualTree;
 using ClassIsland.Controls.UI;
 using ClassIsland.Core;
 using ClassIsland.Core.Abstractions.Controls;
+using ClassIsland.Core.Abstractions.Services;
 using ClassIsland.Core.Extensions.UI;
 using ClassIsland.Views;
 
@@ -61,6 +62,12 @@ public partial class AndroidViewHost : UserControl, IViewHost
 
     private int _navigationProgressAnimationVersion;
 
+    private readonly CancellationTokenSource _hostLifetimeCancellationSource = new();
+
+    private bool _isHostLoaded;
+
+    private TaskCompletionSource? _hostLoadedCompletionSource;
+
     private IInputPane? _inputPane;
 
     private TimeSpan _inputPaneAnimationDuration;
@@ -88,6 +95,10 @@ public partial class AndroidViewHost : UserControl, IViewHost
         Console.WriteLine($"[ELYSIADBG] Get TopLevel = {TopLevel.GetTopLevel(this)}");
         base.OnLoaded(e);
 
+        _isHostLoaded = true;
+        _hostLoadedCompletionSource?.TrySetResult();
+        _hostLoadedCompletionSource = null;
+
         AttachInputPane();
         UpdateFocusedTextPresenter();
         RemoveHandler(GotFocusEvent, OnDescendantGotFocus);
@@ -98,6 +109,7 @@ public partial class AndroidViewHost : UserControl, IViewHost
 
     protected override void OnUnloaded(RoutedEventArgs e)
     {
+        _isHostLoaded = false;
         DetachInputPane();
         DetachFocusedTextPresenter();
         RemoveHandler(GotFocusEvent, OnDescendantGotFocus);
@@ -108,11 +120,13 @@ public partial class AndroidViewHost : UserControl, IViewHost
 
     private void OnDestroy(object? sender, EventArgs e)
     {
+        _isClosed = true;
+        _hostLifetimeCancellationSource.Cancel();
+        _hostLoadedCompletionSource?.TrySetCanceled(_hostLifetimeCancellationSource.Token);
         DetachInputPane();
         DetachFocusedTextPresenter();
         ResetPageContentOffset();
         PreClosing(false);
-        _isClosed = true;
         SetCurrentView(null);
         NavigationPage.PopAllModalsAsync(null);
         NavigationPage.PopToRootAsync(null);
@@ -628,17 +642,80 @@ public partial class AndroidViewHost : UserControl, IViewHost
 
     private async Task RunNavigationWithProgressAsync(Func<Task> navigation)
     {
+        var shouldWaitForAnimation = !IThemeService.IsWaitForTransientDisabled;
+        var cancellationToken = _hostLifetimeCancellationSource.Token;
+        if (shouldWaitForAnimation)
+        {
+            await WaitForHostLoadedAsync(cancellationToken);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
         var animationVersion = StartNavigationProgressAnimation();
         try
         {
+            if (shouldWaitForAnimation)
+            {
+                await WaitForNextRenderedFrameAsync(cancellationToken);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
             await Dispatcher.InvokeAsync(async () =>
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 await navigation();
             });
         }
         finally
         {
-            await CompleteNavigationProgressAnimationAsync(animationVersion);
+            if (shouldWaitForAnimation && !cancellationToken.IsCancellationRequested)
+            {
+                await CompleteNavigationProgressAnimationAsync(animationVersion, cancellationToken);
+            }
+            else
+            {
+                ResetNavigationProgressAnimation(animationVersion);
+            }
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    private Task WaitForHostLoadedAsync(CancellationToken cancellationToken)
+    {
+        if (_isHostLoaded)
+        {
+            return Task.CompletedTask;
+        }
+
+        _hostLoadedCompletionSource ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        return _hostLoadedCompletionSource.Task.WaitAsync(cancellationToken);
+    }
+
+    private Task WaitForNextRenderedFrameAsync(CancellationToken cancellationToken)
+    {
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var compositor = ElementComposition.GetElementVisual(this)?.Compositor
+                         ?? throw new InvalidOperationException("视图宿主必须连接到可视树后才能等待渲染完成。");
+
+        compositor.RequestCompositionUpdate(() =>
+        {
+            var batch = compositor.RequestCompositionBatchCommitAsync();
+            _ = CompleteWhenRenderedAsync(batch.Rendered, completion);
+        });
+        return completion.Task.WaitAsync(cancellationToken);
+    }
+
+    private static async Task CompleteWhenRenderedAsync(Task renderedTask, TaskCompletionSource completion)
+    {
+        try
+        {
+            await renderedTask.ConfigureAwait(false);
+            completion.TrySetResult();
+        }
+        catch (Exception ex)
+        {
+            completion.TrySetException(ex);
         }
     }
 
@@ -668,7 +745,9 @@ public partial class AndroidViewHost : UserControl, IViewHost
         return animationVersion;
     }
 
-    private async Task CompleteNavigationProgressAnimationAsync(int animationVersion)
+    private async Task CompleteNavigationProgressAnimationAsync(
+        int animationVersion,
+        CancellationToken cancellationToken)
     {
         if (animationVersion != _navigationProgressAnimationVersion)
         {
@@ -686,7 +765,15 @@ public partial class AndroidViewHost : UserControl, IViewHost
         completionAnimation.InsertKeyFrame(1.0f, visual.Scale with { X = 1 }, new CubicEaseOut());
         completionAnimation.Duration = completionDuration;
         visual.StartAnimation(nameof(visual.Scale), completionAnimation);
-        await Task.Delay(completionDuration);
+        try
+        {
+            await Task.Delay(completionDuration, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            ResetNavigationProgressAnimation(animationVersion);
+            throw;
+        }
 
         if (animationVersion != _navigationProgressAnimationVersion)
         {
@@ -698,13 +785,41 @@ public partial class AndroidViewHost : UserControl, IViewHost
         fadeAnimation.InsertKeyFrame(1.0f, 0, new CubicEaseOut());
         fadeAnimation.Duration = fadeDuration;
         visual.StartAnimation(nameof(visual.Opacity), fadeAnimation);
-        await Task.Delay(fadeDuration);
+        try
+        {
+            await Task.Delay(fadeDuration, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            ResetNavigationProgressAnimation(animationVersion);
+            throw;
+        }
 
         if (animationVersion == _navigationProgressAnimationVersion)
         {
-            visual.Opacity = 0;
-            visual.Scale = visual.Scale with { X = 0.05 };
+            ResetNavigationProgressAnimation(animationVersion);
         }
+    }
+
+    private void ResetNavigationProgressAnimation(int animationVersion)
+    {
+        if (animationVersion != _navigationProgressAnimationVersion)
+        {
+            return;
+        }
+
+        var visual = ElementComposition.GetElementVisual(NavigationProgressBarFill);
+        if (visual == null)
+        {
+            return;
+        }
+
+        visual.Scale = visual.Scale with { X = 1 };
+        visual.Scale = visual.Scale with { X = 0.05 };
+        visual.Opacity = 1;
+        visual.Opacity = 0;
+        visual.StopAnimation(nameof(visual.Scale));
+        visual.StopAnimation(nameof(visual.Opacity));
     }
 
     private void NavigationPage_OnPopped(object? sender, NavigationEventArgs e)
