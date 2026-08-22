@@ -22,7 +22,7 @@ public class Lazy : ContentControl
     {
         this.GetObservable(ContentProperty).Subscribe(_ => UpdateContent());
         this.GetObservable(ContentTemplateProperty).Subscribe(_ => UpdateContent());
-        
+
         Loaded += OnLoaded;
     }
 

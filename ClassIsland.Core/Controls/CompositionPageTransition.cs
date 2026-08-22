@@ -12,25 +12,18 @@ using Avalonia.VisualTree;
 namespace ClassIsland.Core.Controls;
 
 /// <summary>
-/// A composition-backed page transition that visually matches the
-/// <c>PageSlide</c> + <c>CrossFade</c> composite transition: the outgoing page
-/// slides horizontally out while fading out, and the incoming page slides in
-/// from the opposite side while fading in.
+/// 基于 Composition 实现的页面过渡，视觉效果与 <c>PageSlide</c> 和
+/// <c>CrossFade</c> 的组合过渡一致：旧页面水平滑出并淡出，新页面从相反方向
+/// 滑入并淡入。
 /// </summary>
 /// <remarks>
-/// Composition animations are not driven by the UI thread: they are serialized
-/// into a composition batch and applied by the render thread later, so under
-/// heavy load the batch that carries <c>StartAnimation</c> can reach the
-/// compositor after this method already tried to stop the animations. Such a
-/// late-applied animation would otherwise stay attached to the presenter visual
-/// forever and shadow every explicit property assignment (TabControl reuses the
-/// same two presenters for all tab switches). Cleanup therefore assigns the rest
-/// values through a distinct temporary value first (which recalls animations
-/// that were not committed yet), stops live animations immediately, and queues
-/// an extra generation-guarded pass once the render thread confirms the batch,
-/// so animations applied late are stopped as well. The generation guard also
-/// prevents a cancelled transition from stopping a newer transition's
-/// animations on the same presenters.
+/// Composition 动画不由 UI 线程驱动，而是序列化到 composition batch 后再由
+/// 渲染线程应用。因此在高负载下，携带 <c>StartAnimation</c> 的 batch 可能在本方法
+/// 已尝试停止动画后才到达 compositor。若不处理，延迟应用的动画会一直附着在
+/// presenter visual 上，并覆盖后续显式属性赋值（TabControl 会为所有切页复用同一对
+/// presenter）。清理时会先经过一个不同的临时值写入静止值，以撤回尚未提交的动画，
+/// 再立即停止活动动画；渲染线程确认 batch 后，还会排入一次带世代校验的额外清理，
+/// 以停止延迟应用的动画。世代校验也能防止已取消的过渡停止同一 presenter 上的新过渡。
 /// </remarks>
 public class CompositionPageTransition : IPageTransition
 {
@@ -39,34 +32,33 @@ public class CompositionPageTransition : IPageTransition
     private static long _currentGeneration;
 
     /// <summary>
-    /// Upper bound for waiting until the render thread confirms that the
-    /// transition animations have been applied; afterwards cleanup falls back to
-    /// best effort and the post-batch pass finishes the job.
+    /// 等待渲染线程确认过渡动画已经应用的时间上限。超时后先尽力清理，
+    /// 再由 batch 完成后的清理流程收尾。
     /// </summary>
     private static readonly TimeSpan ApplyConfirmationTimeout = TimeSpan.FromSeconds(2);
 
     /// <summary>
-    /// Duration of both the slide and fade animations.
+    /// 滑动和淡入淡出动画的持续时间。
     /// </summary>
     public TimeSpan Duration { get; set; } = TimeSpan.FromMilliseconds(250);
 
     /// <summary>
-    /// Easing applied to the outgoing page's slide animation.
+    /// 旧页面滑出动画使用的缓动。
     /// </summary>
     public Easing SlideOutEasing { get; set; } = Easing.Parse("0,0 0,1");
 
     /// <summary>
-    /// Easing applied to the incoming page's slide animation.
+    /// 新页面滑入动画使用的缓动。
     /// </summary>
     public Easing SlideInEasing { get; set; } = Easing.Parse("0,0 0,1");
 
     /// <summary>
-    /// Easing applied to the outgoing page's fade animation.
+    /// 旧页面淡出动画使用的缓动。
     /// </summary>
     public Easing FadeOutEasing { get; set; } = Easing.Parse("0,0 0,1");
 
     /// <summary>
-    /// Easing applied to the incoming page's fade animation.
+    /// 新页面淡入动画使用的缓动。
     /// </summary>
     public Easing FadeInEasing { get; set; } = Easing.Parse("0,0 0,1");
 
@@ -98,8 +90,7 @@ public class CompositionPageTransition : IPageTransition
 
         if (fromCompositionVisual is null || toCompositionVisual is null)
         {
-            // Composition isn't available for one of the pages; snap instead of
-            // leaving both pages visible and stacked on top of each other.
+            // 任一页面无法使用 Composition 时直接切换，避免两个页面保持可见并相互重叠。
             from.IsVisible = false;
             to.IsVisible = true;
             return;
@@ -121,19 +112,17 @@ public class CompositionPageTransition : IPageTransition
         var fromBaseOpacity = fromCompositionVisual.Opacity;
         var toBaseOpacity = toCompositionVisual.Opacity;
 
-        // The incoming page is shown by TabControl before Start is called, but
-        // mirror PageSlide and make it visible here as well for standalone use.
+        // TabControl 会在调用 Start 前显示新页面；此处仍按 PageSlide 的行为主动显示，
+        // 以兼容独立调用。
         to.IsVisible = true;
 
-        // Claim both visuals for this transition so cleanup of an older,
-        // still-running transition can never touch them while they are reused
-        // by a newer one (TabControl keeps only two presenter visuals alive).
+        // 为本次过渡占用两个 visual，防止旧过渡的清理触碰已被新过渡复用的 visual。
+        // TabControl 始终只保留两个 presenter visual。
         var generation = Interlocked.Increment(ref _currentGeneration);
         ClaimGeneration(fromCompositionVisual, generation);
         ClaimGeneration(toCompositionVisual, generation);
 
-        // PageSlide replaces the render transform with a translation starting at
-        // zero, so start from zero instead of the visual's base translation.
+        // PageSlide 会用从零开始的位移替换渲染变换，因此从零而非 visual 的基础位移开始。
         StartSlideAnimation(
             fromCompositionVisual,
             new Vector3D(),
@@ -146,14 +135,11 @@ public class CompositionPageTransition : IPageTransition
             new Vector3D(),
             SlideInEasing);
 
-        // CrossFade drives Opacity from 1 to 0 on the outgoing page and from
-        // 0 to 1 on the incoming page.
+        // CrossFade 将旧页面的 Opacity 从 1 变为 0，并将新页面从 0 变为 1。
         StartFadeAnimation(fromCompositionVisual, 1f, 0f, FadeOutEasing);
         StartFadeAnimation(toCompositionVisual, 0f, 1f, FadeInEasing);
 
-        // The animations ride in the composition batch that is current right now;
-        // keep a handle to it so cleanup can wait until the render thread has
-        // actually applied them before stopping anything.
+        // 动画会进入当前 composition batch；保留它以便清理流程先确认渲染线程已实际应用动画。
         CompositionBatch? batch = null;
         try
         {
@@ -161,8 +147,7 @@ public class CompositionPageTransition : IPageTransition
         }
         catch
         {
-            // Batch tracking only improves timing precision; the cleanup paths
-            // below stay correct without it.
+            // 跟踪 batch 只用于提高时序精度；即使无法跟踪，后续清理仍然有效。
         }
 
         var startedAt = Stopwatch.GetTimestamp();
@@ -177,13 +162,11 @@ public class CompositionPageTransition : IPageTransition
                 }
                 catch (TimeoutException)
                 {
-                    // The compositor is extremely backed up; stop waiting and let
-                    // the post-batch cleanup deal with animations applied later.
+                    // compositor 严重阻塞时不再等待，由 batch 完成后的清理处理延迟应用的动画。
                 }
             }
 
-            // The animation timeline starts when the batch was committed, so only
-            // the remainder of the duration has to elapse after confirmation.
+            // 动画时间线从 batch 提交时开始，因此确认后只需等待剩余时长。
             var remaining = Duration - Stopwatch.GetElapsedTime(startedAt);
             if (remaining > TimeSpan.Zero)
             {
@@ -266,12 +249,10 @@ public class CompositionPageTransition : IPageTransition
             return;
         }
 
-        // CompositionVisual ignores assignments equal to its local base value,
-        // which would leave an uncommitted animation in PendingAnimations. Force
-        // each property through a different value so the final assignment is
-        // serialized as a direct value and reliably replaces the pending start.
-        // Only the final values are serialized, so the temporary values never
-        // reach the render thread.
+        // CompositionVisual 会忽略与本地基础值相同的赋值，使未提交动画残留在
+        // PendingAnimations 中。先把每个属性写成不同值，再写入最终值，确保最终赋值
+        // 被序列化为直接值并可靠替换待处理的动画启动。只有最终值会被序列化，
+        // 临时值不会到达渲染线程。
         visual.Translation = new Vector3D(
             translation.X == 0 ? 1 : 0,
             translation.Y,
@@ -280,8 +261,7 @@ public class CompositionPageTransition : IPageTransition
         visual.Opacity = opacity == 0 ? 1 : 0;
         visual.Opacity = opacity;
 
-        // Direct assignments recall starts that haven't been committed yet;
-        // StopAnimation handles animations already attached to the compositor.
+        // 直接赋值会撤回尚未提交的动画启动，StopAnimation 则处理已附着到 compositor 的动画。
         visual.StopAnimation(nameof(CompositionVisual.Translation));
         visual.StopAnimation(nameof(CompositionVisual.Opacity));
     }
@@ -304,10 +284,8 @@ public class CompositionPageTransition : IPageTransition
             return;
         }
 
-        // Runs once the render thread has processed the batch that carried the
-        // animation starts; stops issued earlier would silently miss animations
-        // that had not been applied yet. Idempotent for the common case where
-        // the immediate restore already succeeded.
+        // 渲染线程处理携带动画启动的 batch 后再次执行。更早发出的停止操作会漏掉尚未
+        // 应用的动画；若即时恢复已经成功，这次清理仍保持幂等。
         batch.Processed.ContinueWith(
             _ => Dispatcher.UIThread.Post(Cleanup, DispatcherPriority.Send),
             CancellationToken.None,

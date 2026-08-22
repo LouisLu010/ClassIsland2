@@ -595,7 +595,7 @@
                                                             Value="{DynamicResource AccentFillColorTertiaryBrush}"/>
                                                 </Style>
                                             </TreeView.Styles>
-                                            
+
                                             <TreeView.ItemTemplate>
                                                 <TreeDataTemplate x:DataType="profile2:ClassPlansTreeNode"
                                                                   ItemsSource="{Binding SubPlans}">
@@ -638,7 +638,7 @@
                                                                     </Style>
                                                                 </Style>
                                                             </StackPanel.Styles>
-                                                            
+
                                                             <!-- 名称 -->
                                                             <Panel IsVisible="{Binding !IsGroup}">
                                                                 <ci:TouchDragThumb Width="20" Margin="-4 0 4 0"
@@ -651,7 +651,7 @@
                                                                            Text="{Binding Name}"
                                                                            VerticalAlignment="Center" />
                                                             </Panel>
-                                                            
+
                                                             <ci:FluentIcon Glyph="{ci:FI DocumentDataRegular}" Margin="0 0 4 0"
                                                                            IsVisible="{Binding !IsGroup}" />
                                                             <TextBlock Text="{Binding ClassPlan.Name}"
@@ -709,7 +709,7 @@
                                                                                 <Style Selector="^.IsEnabled">
                                                                                     <Setter Property="Glyph"
                                                                                             Value="{ci:FI TagMultipleRegular}" />
-                                                                                    
+
                                                                                     <Style Selector="^.IsWeekly">
                                                                                         <Setter Property="Glyph"
                                                                                             Value="{ci:FI CalendarRegular}" />
@@ -723,7 +723,7 @@
                                                                                             Value="{ci:FI ArrowRepeatAllFilled}" />
                                                                                     </Style>
                                                                                 </Style>
-                                                                                
+
                                                                                 <Style Selector="^.IsOverlay">
                                                                                     <Setter Property="Glyph"
                                                                                             Value="{ci:FI LayerRegular}" />
@@ -771,7 +771,7 @@
                                                                             Text="{Binding ClassPlan.TimeRule.WeekCountDivTotal}" />
                                                                         <Run Text="周" />
                                                                     </TextBlock>
-                                                                    
+
                                                                     <TextBlock Margin="2 0 0 0"
                                                                                Text="{Binding ClassPlan.TimeRule.EnableDates[0], StringFormat='yy/MM/dd'}">
                                                                         <TextBlock.IsVisible>
@@ -785,7 +785,7 @@
                                                                             </MultiBinding>
                                                                         </TextBlock.IsVisible>
                                                                     </TextBlock>
-                                                                    
+
                                                                     <TextBlock Margin="2 0 0 0"
                                                                                Text="...">
                                                                         <TextBlock.IsVisible>
@@ -811,7 +811,7 @@
                                                                             </MultiBinding>
                                                                         </TextBlock.IsVisible>
                                                                     </TextBlock>
-                                                                    
+
                                                                     <TextBlock Margin="2 0 0 0">
                                                                         <TextBlock.IsVisible>
                                                                             <MultiBinding
@@ -873,7 +873,7 @@
                                             </TreeView.ItemTemplate>
                                         </TreeView>
                                     </Grid>
-                                    
+
                                     <GridSplitter Grid.Column="1" Margin="2 0" />
                                     <!-- 课表编辑区域 -->
 
@@ -1164,7 +1164,7 @@
 
                                         </controls:FACommandBar>
                                     </ci:TutorialBarrier>
-                                     
+
                                     <scheduleDataGrid:ScheduleDataGrid Grid.Row="1" Grid.Column="0"
                                                                        x:Name="ScheduleDataGrid"
                                                                        TutorialContextId="profileSettingsWindow.classPlans"
@@ -1174,9 +1174,9 @@
                                                                        SelectedClassInfoIndex="{Binding ViewModel.SelectedClassIndex, Mode=TwoWay}"
                                                                        SelectedClassPlan="{Binding ViewModel.SelectedClassPlan, Mode=TwoWay}"
                                                                        SelectedDate="{Binding ViewModel.ScheduleCalendarSelectedDate, Mode=TwoWay}"/>
-                                    
+
                                     <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch"
-                                                  Grid.Row="1" 
+                                                  Grid.Row="1"
                                                   VerticalAlignment="Stretch" />
 
                                     <ci:ReusableTabControl Grid.Row="1" Grid.Column="2" Classes="compact tag-SubjectsInput"
@@ -1264,7 +1264,7 @@
                             <Grid Grid.Column="0" Margin="0 0 3 0" RowDefinitions="Auto,*,Auto">
                                 <!-- 时间表操作 -->
                                 <ci:TutorialBarrier Grid.Row="0" ExcludedTags="classisland.profileSettingsWindow.timeLayouts.add">
-                                    <controls:FACommandBar Grid.Row="0" 
+                                    <controls:FACommandBar Grid.Row="0"
                                                          DefaultLabelPosition="Right"
                                                          IsEnabled="{Binding ViewModel.ManagementService.Policy.DisableProfileTimeLayoutEditing, Converter={StaticResource InvertBooleanConverter}}">
                                         <controls:FACommandBar.PrimaryCommands>
@@ -1340,11 +1340,11 @@
                                     </StackPanel>
                                 </Expander>
                             </Grid>
-                            
+
                             <GridSplitter Grid.Column="1" Margin="2 0" />
-                            
+
                             <ci:Emptiable Grid.Column="2" IsDirectContentMode="True" Data="{Binding ViewModel.SelectedTimeLayout, Mode=OneWay}">
-                                <Grid Margin="3 0 0 0" 
+                                <Grid Margin="3 0 0 0"
                                       DataContext="{Binding ViewModel.SelectedTimeLayout}"
                                       RowDefinitions="Auto,Auto,*,Auto">
                                     <Grid.ColumnDefinitions>
@@ -1359,19 +1359,19 @@
                                                              IsEnabled="{Binding !$parent[views:ProfileSettingsWindow].ViewModel.ManagementService.Policy.DisableProfileTimeLayoutEditing}"
                                                              Classes="hide-popup-indicator">
                                             <controls:FACommandBar.PrimaryCommands>
-                                                <controls:FACommandBarButton Click="ButtonAddClassTime_OnClick" 
+                                                <controls:FACommandBarButton Click="ButtonAddClassTime_OnClick"
                                                                            IconSource="{ci:FluentIconSource &#xE47A;}"
                                                                            ToolTip.Tip="添加上课时间点。"
                                                                            Label="上课"/>
-                                                <controls:FACommandBarButton Click="ButtonAddBreakTime_OnClick" 
+                                                <controls:FACommandBarButton Click="ButtonAddBreakTime_OnClick"
                                                                            IconSource="{ci:FluentIconSource &#xE4C4;}"
                                                                            ToolTip.Tip="添加课间休息时间点。"
                                                                            Label="课间"/>
-                                                <controls:FACommandBarButton Click="ButtonAddSeparator_OnClick" 
+                                                <controls:FACommandBarButton Click="ButtonAddSeparator_OnClick"
                                                                            IconSource="{ci:FluentIconSource &#xF021;}"
                                                                            ToolTip.Tip="添加分割线。"
                                                                            Label="分割线"/>
-                                                <controls:FACommandBarButton Click="ButtonAddActionTimePoint_OnClick" 
+                                                <controls:FACommandBarButton Click="ButtonAddActionTimePoint_OnClick"
                                                                            IconSource="{ci:FluentIconSource &#xE01F;}"
                                                                            ToolTip.Tip="添加行动时间点。"
                                                                            Label="行动" />
@@ -1431,12 +1431,12 @@
                                                         <controls:FASymbolIconSource Symbol="Remove"/>
                                                     </controls:FACommandBarButton.IconSource>
                                                 </controls:FACommandBarButton>
-                                                <controls:FACommandBarButton Click="ButtonRefreshTimeLayout_OnClick" 
+                                                <controls:FACommandBarButton Click="ButtonRefreshTimeLayout_OnClick"
                                                                            IconSource="{ci:FluentIconSource &#xE0B5;}"
                                                                            ToolTip.Tip="重新排序该时间表中的时间点。"
                                                                            Label="刷新"/>
                                                 <controls:FACommandBarSeparator />
-                                                <controls:FACommandBarButton Click="ButtonEditTimeLayoutInfo_OnClick" 
+                                                <controls:FACommandBarButton Click="ButtonEditTimeLayoutInfo_OnClick"
                                                                            IconSource="{ci:FluentIconSource &#xE9E4;}"
                                                                            ToolTip.Tip="查看并编辑时间表的基本信息。"
                                                                            Label="时间表信息"/>
@@ -1453,7 +1453,7 @@
                                                                 </TextBlock>
                                                                 <TextBlock Text="此操作无法撤销。" />
                                                                 <Button Content="删除" Classes="accent" Click="ButtonDeleteTimeLayout_OnClick"/>
-                                                            </StackPanel>   
+                                                            </StackPanel>
                                                         </Flyout>
                                                     </controls:FACommandBarButton.Flyout>
                                                 </controls:FACommandBarButton>
@@ -1672,7 +1672,7 @@
                                                 <StackPanel x:Name="StackPanelClassTimePointSettings" Spacing="8">
                                                     <CheckBox Content="默认隐藏"
                                                               IsChecked="{Binding ViewModel.SelectedTimePoint.IsHideDefault}" />
-                                                    <TextBlock Text="若默认隐藏一个时间点，那么只有在处于此时间点时，此时间点才会显示。" TextWrapping="Wrap" 
+                                                    <TextBlock Text="若默认隐藏一个时间点，那么只有在处于此时间点时，此时间点才会显示。" TextWrapping="Wrap"
                                                                Classes="l-instructive"/>
 
                                                     <Separator Margin="0 4 0 0" />
@@ -1752,7 +1752,7 @@
                                         </ScrollViewer>
                                     </ci:Emptiable >
                                 </Grid>
-                                
+
                             </ci:Emptiable>
                         </Grid>
                     </ci:Lazy>
@@ -1850,7 +1850,7 @@
                                                                 <Style Selector="ci|FluentIcon">
                                                                     <Setter Property="Glyph" Value="&#xE47A;"/>
                                                                     <Style Selector="^.out-door">
-                                                                        <Setter Property="Glyph" Value="&#xF02B;"/>                                                     
+                                                                        <Setter Property="Glyph" Value="&#xF02B;"/>
                                                                     </Style>
                                                                 </Style>
                                                             </ci:FluentIcon.Styles>
@@ -1878,7 +1878,7 @@
                                           Width="5" HorizontalAlignment="Stretch"/>
 
                             <!-- 科目编辑 -->
-                            <ci:Emptiable Grid.Row="1" Grid.Column="2" 
+                            <ci:Emptiable Grid.Row="1" Grid.Column="2"
                                           IsDirectContentMode="True"
                                           Data="{Binding ViewModel.SelectedSubject}">
                                 <Grid Margin="3 0 0 0"
@@ -1958,7 +1958,7 @@
                                                  Classes="hide-popup-indicator"
                                                  DefaultLabelPosition="Right">
                                 <controls:FACommandBar.PrimaryCommands>
-                                    <controls:FACommandBarButton Click="ButtonRefreshScheduleAdjustmentView_OnClick" 
+                                    <controls:FACommandBarButton Click="ButtonRefreshScheduleAdjustmentView_OnClick"
                                                                IconSource="{ci:FluentIconSource &#xE0B5;}"
                                                                Label="刷新"
                                                                IsEnabled="{Binding ViewModel.IsInScheduleSwappingMode, Converter={StaticResource InvertBooleanConverter}}"/>
@@ -1985,7 +1985,7 @@
                                             </Binding>
                                         </controls:FACommandBarButton.IsVisible>
                                     </controls:FACommandBarButton>
-                                    <controls:FACommandBarButton Click="ButtonSwapSchedule_OnClick" 
+                                    <controls:FACommandBarButton Click="ButtonSwapSchedule_OnClick"
                                                                IconSource="{ci:FluentIconSource &#xE15F;}"
                                                                Label="交换课程"
                                                                IsEnabled="{Binding ViewModel.IsInScheduleSwappingMode, Converter={StaticResource InvertBooleanConverter}}">
@@ -1998,7 +1998,7 @@
                                             </Binding>
                                         </controls:FACommandBarButton.IsVisible>
                                     </controls:FACommandBarButton>
-                                    <controls:FACommandBarButton Click="ButtonCancelClassSwap_OnClick" 
+                                    <controls:FACommandBarButton Click="ButtonCancelClassSwap_OnClick"
                                                                IconSource="{ci:FluentIconSource &#xE671;}"
                                                                Label="取消"
                                                                IsEnabled="{Binding !ViewModel.IsInScheduleSwappingMode, Converter={StaticResource InvertBooleanConverter}}">
@@ -2014,7 +2014,7 @@
                                             </MultiBinding>
                                         </controls:FACommandBarButton.IsVisible>
                                     </controls:FACommandBarButton>
-                                    <controls:FACommandBarButton Click="ButtonSwapScheduleComplete_OnClick" 
+                                    <controls:FACommandBarButton Click="ButtonSwapScheduleComplete_OnClick"
                                                                IconSource="{ci:FluentIconSource &#xE424;}"
                                                                Label="完成交换"
                                                                IsEnabled="{Binding !ViewModel.IsInScheduleSwappingMode, Converter={StaticResource InvertBooleanConverter}}">
@@ -2080,7 +2080,7 @@
                                         Classes="compact">
                                 <TabItem Header="{ci:FluentIcon &#xF0EB;}">
                                     <Grid RowDefinitions="Auto,*,Auto">
-                                        <Border Background="#204169e1" 
+                                        <Border Background="#204169e1"
                                                 Grid.Row="2"
                                                 IsVisible="{Binding ViewModel.IsInScheduleSwappingMode}">
                                             <Grid>
@@ -2120,7 +2120,7 @@
                 <TabItem Header="导入/导出" IsVisible="False">
                     <ci:Lazy>
                         <controls:FANavigationView MenuItems="{Binding ViewModel.TransferNavigationViewItems, Mode=OneWay}"
-                                                   PaneDisplayMode="Left" 
+                                                   PaneDisplayMode="Left"
                                                    IsSettingsVisible="False"
                                                    OpenPaneLength="280"
                                                    x:Name="TransferNavigationView"
@@ -2133,7 +2133,7 @@
                             <ci:Emptiable IsDirectContentMode="True"
                                           Data="{Binding ViewModel.SelectedTransferInfo}">
                                 <Grid RowDefinitions="Auto, *, Auto, Auto">
-                                    <Grid Grid.Row="0" Margin="12 16 18 0" 
+                                    <Grid Grid.Row="0" Margin="12 16 18 0"
                                           IsVisible="{Binding !ViewModel.SelectedTransferInfo.HidePageTitle}"
                                           Classes.FullWidth="{Binding ViewModel.SelectedTransferInfo.UseFullWidth, TargetNullValue={x:False}, FallbackValue={x:False}}"
                                           x:Name="TitleContainer">
@@ -2146,7 +2146,7 @@
                                                    Text="{Binding ViewModel.SelectedTransferInfo.Name, FallbackValue=''}"
                                                    Theme="{StaticResource TitleTextBlockStyle}"/>
                                     </Grid>
-                                    <ci:Lazy Grid.Row="1" 
+                                    <ci:Lazy Grid.Row="1"
                                              Content="{Binding ViewModel.TransferProviderContent}"/>
                                     <Separator Grid.Row="2"/>
                                     <Border Grid.Row="3" Padding="12">
@@ -2154,7 +2154,7 @@
                                             <controls:FAProgressRing Width="32" Height="32"
                                                                    IsActive="{Binding ViewModel.IsTransferring}"
                                                                    IsIndeterminate="True"
-                                                                   IsVisible="{Binding ViewModel.IsTransferring}"/>  
+                                                                   IsVisible="{Binding ViewModel.IsTransferring}"/>
                                             <Button Classes="accent"
                                                     Click="ButtonInvokeTransfer_OnClick"
                                                     HorizontalAlignment="Right"

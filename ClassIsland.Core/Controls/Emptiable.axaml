@@ -10,7 +10,7 @@
         <Setter Property="Template">
             <ControlTemplate>
                 <Panel>
-                    <controls:Lazy x:Name="MainContentPresenter" 
+                    <controls:Lazy x:Name="MainContentPresenter"
                                       Content="{TemplateBinding Content, Mode=OneWay}"
                                       ContentTemplate="{TemplateBinding ContentTemplate, Mode=OneWay}"/>
                     <ContentPresenter x:Name="EmptyContentPresenter" 
