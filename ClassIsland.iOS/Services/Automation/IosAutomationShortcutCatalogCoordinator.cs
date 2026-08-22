@@ -18,7 +18,6 @@ namespace ClassIsland.iOS.Services.Automation;
 /// </summary>
 internal sealed class IosAutomationShortcutCatalogCoordinator : IDisposable
 {
-    private const string CatalogKey = "classisland.shortcuts.automation-catalog";
     private static readonly TimeSpan PublishDebounceInterval =
         TimeSpan.FromMilliseconds(250);
 
@@ -140,7 +139,10 @@ internal sealed class IosAutomationShortcutCatalogCoordinator : IDisposable
             entries,
             IosAutomationShortcutCatalogJsonContext.Default
                 .IosAutomationShortcutCatalogEntryArray);
-        NSUserDefaults.StandardUserDefaults.SetString(json, CatalogKey);
+        IosAutomationShortcutDefaults.Shared.SetString(
+            json,
+            IosAutomationShortcutDefaults.CatalogKey);
+        IosAutomationShortcutDefaults.Shared.Synchronize();
     }
 
     private void DetachSubscriptions()

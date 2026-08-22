@@ -177,16 +177,17 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
 
     private void QueuePendingAutomationNavigation()
     {
-        const string pendingAutomationUriKey =
-            "classisland.shortcuts.pending-automation-uri";
-        var uriValue = NSUserDefaults.StandardUserDefaults.StringForKey(
-            pendingAutomationUriKey);
+        var defaults = IosAutomationShortcutDefaults.Shared;
+        defaults.Synchronize();
+        var uriValue = defaults.StringForKey(
+            IosAutomationShortcutDefaults.PendingAutomationUriKey);
         if (!AppNavigationUriParser.TryParseClassIslandUri(uriValue, out var uri))
         {
             return;
         }
 
-        NSUserDefaults.StandardUserDefaults.RemoveObject(pendingAutomationUriKey);
+        defaults.RemoveObject(IosAutomationShortcutDefaults.PendingAutomationUriKey);
+        defaults.Synchronize();
         if (!_isAppNavigationReady)
         {
             _pendingNavigationUri = uri;

@@ -1,6 +1,8 @@
 import AppIntents
 import Foundation
 
+private let automationAppGroupIdentifier =
+    "group.cn.classisland.ios.automation"
 private let automationCatalogKey =
     "classisland.shortcuts.automation-catalog"
 private let automationIntentNotificationName = Notification.Name(
@@ -18,7 +20,10 @@ private struct StoredAutomation: Decodable {
 @available(iOS 16.0, *)
 private enum AutomationCatalog {
     static func load() -> [ClassIslandAutomation] {
-        guard let json = UserDefaults.standard.string(forKey: automationCatalogKey),
+        guard let defaults = UserDefaults(
+                  suiteName: automationAppGroupIdentifier
+              ),
+              let json = defaults.string(forKey: automationCatalogKey),
               let data = json.data(using: .utf8),
               let stored = try? JSONDecoder().decode([StoredAutomation].self, from: data) else {
             return []
@@ -105,7 +110,13 @@ struct RunClassIslandAutomationIntent: OpenIntent {
 
         let suffix = try Self.validate(automation.uriSuffix)
         let uri = "classisland://app/api/automation/run/\(suffix)"
-        UserDefaults.standard.set(uri, forKey: pendingAutomationUriKey)
+        guard let defaults = UserDefaults(
+            suiteName: automationAppGroupIdentifier
+        ) else {
+            throw AutomationStorageUnavailableError()
+        }
+        defaults.set(uri, forKey: pendingAutomationUriKey)
+        defaults.synchronize()
         NotificationCenter.default.post(
             name: automationIntentNotificationName,
             object: nil
@@ -129,9 +140,32 @@ struct RunClassIslandAutomationIntent: OpenIntent {
     }
 }
 
+@available(iOS 16.0, *)
+struct ClassIslandShortcuts: AppShortcutsProvider {
+    static var appShortcuts: [AppShortcut] {
+        AppShortcut(
+            intent: RunClassIslandAutomationIntent(),
+            phrases: [
+                "使用 \(.applicationName) 运行自动化",
+                "在 \(.applicationName) 中运行自动化"
+            ],
+            shortTitle: "运行自动化",
+            systemImageName: "bolt.fill"
+        )
+    }
+
+    static var shortcutTileColor: ShortcutTileColor = .blue
+}
+
 private struct AutomationUnavailableError: LocalizedError {
     var errorDescription: String? {
         "所选自动化不存在或已更改，请在快捷指令中重新选择。"
+    }
+}
+
+private struct AutomationStorageUnavailableError: LocalizedError {
+    var errorDescription: String? {
+        "无法访问 ClassIsland 与快捷指令的共享数据。"
     }
 }
 
