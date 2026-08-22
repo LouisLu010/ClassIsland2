@@ -13,11 +13,11 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Rendering.Composition;
-using Avalonia.Rendering.Composition.Animations;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
 using ClassIsland.Core;
 using ClassIsland.Core.Abstractions.Controls;
+using ClassIsland.Core.Abstractions.Services;
 using ClassIsland.Core.Extensions.UI;
 using ClassIsland.Views;
 
@@ -65,7 +65,9 @@ public partial class MobileViewHost : UserControl, IViewHost
 
     private IDisposable? _currentViewHeaderHeightOverrideObserver;
 
-    private int _navigationProgressAnimationVersion;
+    private bool _isHostLoaded;
+
+    private TaskCompletionSource? _hostLoadedCompletionSource;
 
     private IInputPane? _inputPane;
 
@@ -92,6 +94,9 @@ public partial class MobileViewHost : UserControl, IViewHost
         AppBase.Current.PhonyRootWindow = TopLevel.GetTopLevel(this)!;
         base.OnLoaded(e);
 
+        _isHostLoaded = true;
+        _hostLoadedCompletionSource?.TrySetResult();
+
         AttachInputPane();
         UpdateFocusedTextPresenter();
         RemoveHandler(GotFocusEvent, OnDescendantGotFocus);
@@ -102,6 +107,8 @@ public partial class MobileViewHost : UserControl, IViewHost
 
     protected override void OnUnloaded(RoutedEventArgs e)
     {
+        _isHostLoaded = false;
+        _hostLoadedCompletionSource = null;
         DetachInputPane();
         DetachFocusedTextPresenter();
         RemoveHandler(GotFocusEvent, OnDescendantGotFocus);
@@ -570,7 +577,7 @@ public partial class MobileViewHost : UserControl, IViewHost
 
         Activate();
         var isFirstViewShowed = _isFirstViewShowed;
-        await RunNavigationWithProgressAsync(async () =>
+        await RunNavigationWithLoadingIndicatorAsync(async () =>
         {
             if (isFirstViewShowed)
             {
@@ -630,17 +637,23 @@ public partial class MobileViewHost : UserControl, IViewHost
         }
         else
         {
-            await RunNavigationWithProgressAsync(() => NavigationPage.PopAsync());
+            await RunNavigationWithLoadingIndicatorAsync(() => NavigationPage.PopAsync());
         }
 
         return !ActivatedViews.Contains(view);
     }
 
-    private async Task RunNavigationWithProgressAsync(Func<Task> navigation)
+    private async Task RunNavigationWithLoadingIndicatorAsync(Func<Task> navigation)
     {
-        var animationVersion = StartNavigationProgressAnimation();
+        NavigationLoadingIndicator.IsVisible = true;
         try
         {
+            if (!IThemeService.IsWaitForTransientDisabled)
+            {
+                await WaitForHostLoadedAsync();
+                await WaitForNextRenderedFrameAsync();
+            }
+
             await Dispatcher.InvokeAsync(async () =>
             {
                 await navigation();
@@ -648,72 +661,45 @@ public partial class MobileViewHost : UserControl, IViewHost
         }
         finally
         {
-            await CompleteNavigationProgressAnimationAsync(animationVersion);
+            NavigationLoadingIndicator.IsVisible = false;
         }
     }
 
-    private int StartNavigationProgressAnimation()
+    private Task WaitForHostLoadedAsync()
     {
-        var animationVersion = ++_navigationProgressAnimationVersion;
-        var visual = ElementComposition.GetElementVisual(NavigationProgressBarFill);
-        if (visual == null)
+        if (_isHostLoaded)
         {
-            return animationVersion;
+            return Task.CompletedTask;
         }
 
-        var compositor = visual.Compositor;
-        var progressAnimation = compositor.CreateVector3DKeyFrameAnimation();
-        progressAnimation.InsertKeyFrame(0.0f, visual.Scale with { X = 0.05 });
-        progressAnimation.InsertKeyFrame(0.35f, visual.Scale with { X = 0.65 }, new CubicEaseOut());
-        progressAnimation.InsertKeyFrame(1.0f, visual.Scale with { X = 0.9 }, new CubicEaseOut());
-        progressAnimation.Duration = TimeSpan.FromSeconds(1.5);
-        visual.StartAnimation(nameof(visual.Scale), progressAnimation);
-
-        var opacityAnimation = compositor.CreateScalarKeyFrameAnimation();
-        opacityAnimation.InsertKeyFrame(0.0f, 1);
-        opacityAnimation.InsertKeyFrame(1.0f, 1);
-        opacityAnimation.Duration = progressAnimation.Duration;
-        visual.StartAnimation(nameof(visual.Opacity), opacityAnimation);
-
-        return animationVersion;
+        _hostLoadedCompletionSource ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        return _hostLoadedCompletionSource.Task;
     }
 
-    private async Task CompleteNavigationProgressAnimationAsync(int animationVersion)
+    private Task WaitForNextRenderedFrameAsync()
     {
-        if (animationVersion != _navigationProgressAnimationVersion)
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var compositor = ElementComposition.GetElementVisual(this)?.Compositor
+                         ?? throw new InvalidOperationException("视图宿主必须连接到可视树后才能等待渲染完成。");
+
+        compositor.RequestCompositionUpdate(() =>
         {
-            return;
+            var batch = compositor.RequestCompositionBatchCommitAsync();
+            _ = CompleteWhenRenderedAsync(batch.Rendered, completion);
+        });
+        return completion.Task;
+    }
+
+    private static async Task CompleteWhenRenderedAsync(Task renderedTask, TaskCompletionSource completion)
+    {
+        try
+        {
+            await renderedTask.ConfigureAwait(false);
+            completion.TrySetResult();
         }
-
-        var visual = ElementComposition.GetElementVisual(NavigationProgressBarFill);
-        if (visual == null)
+        catch (Exception ex)
         {
-            return;
-        }
-
-        var completionDuration = TimeSpan.FromMilliseconds(150);
-        var completionAnimation = visual.Compositor.CreateVector3DKeyFrameAnimation();
-        completionAnimation.InsertKeyFrame(1.0f, visual.Scale with { X = 1 }, new CubicEaseOut());
-        completionAnimation.Duration = completionDuration;
-        visual.StartAnimation(nameof(visual.Scale), completionAnimation);
-        await Task.Delay(completionDuration);
-
-        if (animationVersion != _navigationProgressAnimationVersion)
-        {
-            return;
-        }
-
-        var fadeDuration = TimeSpan.FromMilliseconds(120);
-        var fadeAnimation = visual.Compositor.CreateScalarKeyFrameAnimation();
-        fadeAnimation.InsertKeyFrame(1.0f, 0, new CubicEaseOut());
-        fadeAnimation.Duration = fadeDuration;
-        visual.StartAnimation(nameof(visual.Opacity), fadeAnimation);
-        await Task.Delay(fadeDuration);
-
-        if (animationVersion == _navigationProgressAnimationVersion)
-        {
-            visual.Opacity = 0;
-            visual.Scale = visual.Scale with { X = 0.05 };
+            completion.TrySetException(ex);
         }
     }
 
