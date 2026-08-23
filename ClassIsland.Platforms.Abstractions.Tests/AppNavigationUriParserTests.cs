@@ -11,6 +11,8 @@ public sealed class AppNavigationUriParserTests
     [InlineData("classisland://app/settings/notification?ci_keepHistory=true")]
     [InlineData("classisland://app/profile/timeLayouts")]
     [InlineData("classisland://app/helps")]
+    [InlineData("classisland://app/api/automation/run/morning")]
+    [InlineData("classisland://app/api/automation/revert/folder/morning")]
     public void TryParseClassIslandUri_AcceptsAbsoluteAppLinks(string value)
     {
         Assert.True(AppNavigationUriParser.TryParseClassIslandUri(value, out var uri));
@@ -29,8 +31,6 @@ public sealed class AppNavigationUriParserTests
     [InlineData("classisland://app/")]
     [InlineData("classisland://app/test")]
     [InlineData("classisland://app/edit")]
-    [InlineData("classisland://app/api/automation/run/example")]
-    [InlineData("classisland://app/api/automation/revert/example")]
     [InlineData("classisland://app/%61pi/automation/run/example")]
     [InlineData("classisland://app/settings%2f..%2fapi/automation/run/example")]
     [InlineData("classisland://app/settings%5c..%5capi/automation/run/example")]

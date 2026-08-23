@@ -39,6 +39,7 @@ fi
 
 app_bundle="${app_bundles[0]}"
 extension_bundle="$app_bundle/PlugIns/ClassIslandLiveActivityExtension.appex"
+automation_intent_metadata="$extension_bundle/Metadata.appintents/extract.actionsdata"
 bridge_bundle="$app_bundle/Frameworks/ClassIslandLiveActivityBridge.framework"
 bridge_binary="$bridge_bundle/ClassIslandLiveActivityBridge"
 miniaudio_binary="$app_bundle/Frameworks/miniaudio.framework/miniaudio"
@@ -52,6 +53,18 @@ if [[ -n "$debug_artifacts" ]]; then
 fi
 if [[ ! -d "$extension_bundle" ]]; then
   echo "::error::The Live Activity extension is missing from the IPA"
+  exit 1
+fi
+if [[ ! -f "$automation_intent_metadata" ]]; then
+  echo "::error::The Live Activity extension does not expose App Intents metadata to Shortcuts"
+  exit 1
+fi
+if ! grep -q '"RunClassIslandAutomationIntent"' "$automation_intent_metadata"; then
+  echo "::error::The Live Activity extension does not expose the ClassIsland automation intent"
+  exit 1
+fi
+if ! grep -Eq '"autoShortcuts":\[[^]]' "$automation_intent_metadata"; then
+  echo "::error::The ClassIsland App Shortcuts provider did not publish any shortcuts"
   exit 1
 fi
 if [[ ! -f "$bridge_binary" ]]; then

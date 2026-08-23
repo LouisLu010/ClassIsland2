@@ -11,6 +11,7 @@ using ClassIsland.Core.Abstractions.Services;
 using ClassIsland.Core.Abstractions.Services.UI;
 using ClassIsland.Core.Controls.IconSources;
 using ClassIsland.Extensions;
+using ClassIsland.iOS.Services.Automation;
 using ClassIsland.iOS.Services.LiveActivities;
 using ClassIsland.iOS.Services.Notifications;
 using ClassIsland.iOS.Services.Platform;
@@ -33,6 +34,7 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
 {
     private LessonsLiveActivityCoordinator? _liveActivityCoordinator;
     private IosLessonsNotificationCoordinator? _lessonsNotificationCoordinator;
+    private IosAutomationShortcutCatalogCoordinator? _automationShortcutCatalogCoordinator;
     private IosSystemEventsService? _systemEventsService;
     private readonly LessonPreparationNotificationTimeline _lessonPreparationTimeline = new();
     private IActivatableLifetime? _activatableLifetime;
@@ -40,6 +42,7 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
     private readonly IosNotificationCenterDelegate _notificationCenterDelegate = new();
     private App? _app;
     private Uri? _pendingNavigationUri;
+    private NSObject? _automationIntentObserver;
     private bool _isAppNavigationReady;
 
     protected override AppBuilder CreateAppBuilder()
@@ -51,6 +54,9 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
         }
 
         UNUserNotificationCenter.Current.Delegate = _notificationCenterDelegate;
+        _automationIntentObserver = NSNotificationCenter.DefaultCenter.AddObserver(
+            new NSString("ClassIslandAutomationIntentRun"),
+            _ => QueuePendingAutomationNavigation());
         PlatformServices.AppLifetimeService = new IosAppLifetimeService(
             PrepareForManualTerminationAsync,
             ResumeAfterManualTerminationCanceled);
@@ -118,6 +124,10 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
                 _lessonPreparationTimeline);
             _lessonsNotificationCoordinator.Start();
 
+            _automationShortcutCatalogCoordinator =
+                new IosAutomationShortcutCatalogCoordinator();
+            _automationShortcutCatalogCoordinator.Start();
+
 #if DEVELOPER_PREVIEW
             Dispatcher.UIThread.Post(async () =>
             {
@@ -137,19 +147,47 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
 #else
             Dispatcher.UIThread.Post(app.Init);
 #endif
+            QueuePendingAutomationNavigation();
         });
     }
 
     private void OnActivated(object? sender, ActivatedEventArgs args)
     {
-        if (args is not ProtocolActivatedEventArgs protocolArguments ||
-            !AppNavigationUriParser.TryParseClassIslandUri(
+        if (args is not ProtocolActivatedEventArgs protocolArguments)
+        {
+            QueuePendingAutomationNavigation();
+            return;
+        }
+
+        if (!AppNavigationUriParser.TryParseClassIslandUri(
                 protocolArguments.Uri.AbsoluteUri,
                 out var uri))
         {
             return;
         }
 
+        if (!_isAppNavigationReady)
+        {
+            _pendingNavigationUri = uri;
+            return;
+        }
+
+        QueueNavigation(uri!);
+    }
+
+    private void QueuePendingAutomationNavigation()
+    {
+        var defaults = IosAutomationShortcutDefaults.Shared;
+        defaults.Synchronize();
+        var uriValue = defaults.StringForKey(
+            IosAutomationShortcutDefaults.PendingAutomationUriKey);
+        if (!AppNavigationUriParser.TryParseClassIslandUri(uriValue, out var uri))
+        {
+            return;
+        }
+
+        defaults.RemoveObject(IosAutomationShortcutDefaults.PendingAutomationUriKey);
+        defaults.Synchronize();
         if (!_isAppNavigationReady)
         {
             _pendingNavigationUri = uri;
@@ -262,6 +300,14 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
                 _activatableLifetime = null;
             }
 
+            if (_automationIntentObserver != null)
+            {
+                NSNotificationCenter.DefaultCenter.RemoveObserver(
+                    _automationIntentObserver);
+                _automationIntentObserver.Dispose();
+                _automationIntentObserver = null;
+            }
+
             if (_app != null)
             {
                 _app.AppStarted -= OnAppStarted;
@@ -277,6 +323,8 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
 
             _lessonsNotificationCoordinator?.Dispose();
             _lessonsNotificationCoordinator = null;
+            _automationShortcutCatalogCoordinator?.Dispose();
+            _automationShortcutCatalogCoordinator = null;
             _liveActivityCoordinator?.Dispose();
             _liveActivityCoordinator = null;
             _systemEventsService?.Dispose();

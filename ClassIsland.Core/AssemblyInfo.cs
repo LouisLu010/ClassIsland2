@@ -7,6 +7,7 @@ using Avalonia.Metadata;
 [assembly: InternalsVisibleTo("ClassIsland.iOS")]
 [assembly: InternalsVisibleTo("ClassIsland.Hmos")]
 [assembly: InternalsVisibleTo("ClassIsland.Platforms.Windows")]
+[assembly: InternalsVisibleTo("ClassIsland.Platforms.Abstractions.Tests")]
 
 [assembly: XmlnsPrefix("http://classisland.tech/schemas/xaml/core", "ci")]
 [assembly: XmlnsDefinition("http://classisland.tech/schemas/xaml/core", "ClassIsland.Core")]

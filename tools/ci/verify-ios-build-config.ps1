@@ -29,6 +29,8 @@ $iosAssemblyInfoText = Read-RepositoryFile "ClassIsland.iOS/AssemblyInfo.cs"
 $privacyManifestText = Read-RepositoryFile "ClassIsland.iOS/PrivacyInfo.xcprivacy"
 $privacyManifest = [xml]$privacyManifestText
 $nativeProjectText = Read-RepositoryFile "ClassIsland.iOS.Native/ClassIsland.iOS.Native.xcodeproj/project.pbxproj"
+$iosEntitlementsText = Read-RepositoryFile "ClassIsland.iOS/Entitlements.plist"
+$extensionEntitlementsText = Read-RepositoryFile "ClassIsland.iOS.Native/Extension/ClassIslandLiveActivityExtension.entitlements"
 $infoPlistText = Read-RepositoryFile "ClassIsland.iOS/Info.plist"
 $infoPlist = [xml]$infoPlistText
 $workerWorkflowText = Read-RepositoryFile ".github/workflows/_build_ios_reusable.yml"
@@ -48,6 +50,9 @@ $androidBuildText = Read-RepositoryFile "build/Build.AndroidApp.cs"
 $nukeSchema = Read-RepositoryFile ".nuke/build.schema.json" | ConvertFrom-Json
 $liveActivityServiceText = Read-RepositoryFile "ClassIsland.iOS/Services/LiveActivities/IosLiveActivityService.cs"
 $liveActivityBridgeText = Read-RepositoryFile "ClassIsland.iOS.Native/Bridge/ClassIslandLiveActivityBridge.swift"
+$automationIntentText = Read-RepositoryFile "ClassIsland.iOS.Native/Bridge/ClassIslandAutomationIntent.swift"
+$automationDefaultsText = Read-RepositoryFile "ClassIsland.iOS/Services/Automation/IosAutomationShortcutDefaults.cs"
+$automationCatalogCoordinatorText = Read-RepositoryFile "ClassIsland.iOS/Services/Automation/IosAutomationShortcutCatalogCoordinator.cs"
 $appDelegateText = Read-RepositoryFile "ClassIsland.iOS/AppDelegate.cs"
 $iosSystemEventsServiceText = Read-RepositoryFile "ClassIsland.iOS/Services/Platform/IosSystemEventsService.cs"
 $iosSoundFlowBootstrapText = Read-RepositoryFile "ClassIsland.iOS/Services/Platform/IosSoundFlowNativeBootstrap.cs"
@@ -231,6 +236,24 @@ Assert-True ($liveActivityServiceText.Contains('registration.Unregister();')) "M
 Assert-True ($liveActivityBridgeText.Contains('for await command in stream')) "The Swift bridge must process ActivityKit operations through one sequential consumer."
 Assert-True ($liveActivityBridgeText.Contains('ClassIslandLiveActivityCommandQueue.shared.publish(')) "The Swift publish ABI must use the sequential command queue."
 Assert-True ($liveActivityBridgeText.Contains('ClassIslandLiveActivityCommandQueue.shared.end(')) "The Swift end ABI must use the sequential command queue."
+Assert-True ($automationIntentText.Contains('RunClassIslandAutomationIntent: OpenIntent')) "The Shortcuts automation intent must use OpenIntent so execution continues in the foreground app."
+Assert-True ($automationIntentText.Contains('func suggestedEntities() async throws -> [ClassIslandAutomation]')) "The Shortcuts automation picker must suggest the current catalog instead of requiring a free-form suffix."
+Assert-True ($automationIntentText.Contains('AutomationCatalog.load().filter')) "The Shortcuts automation picker must search only synchronized automations."
+Assert-True ($automationIntentText.Contains('AppShortcutsProvider')) "The iOS automation action must publish an App Shortcut."
+Assert-True ($automationIntentText.Contains('suiteName: automationAppGroupIdentifier')) "The native automation intent must read the shared App Group defaults."
+Assert-True ($automationCatalogCoordinatorText.Contains('IosAutomationShortcutCatalogBuilder.Build(')) "The iOS app must publish the current URI automation catalog for Shortcuts."
+Assert-True ($automationCatalogCoordinatorText.Contains('IosAutomationShortcutDefaults.Shared.SetString(')) "The iOS app must publish the automation catalog to the shared App Group defaults."
+Assert-True ($appDelegateText.Contains('IosAutomationShortcutDefaults.Shared')) "The iOS app must consume pending Shortcuts navigation from the shared App Group defaults."
+Assert-True ($automationDefaultsText.Contains('NSUserDefaultsType.SuiteName')) "Managed iOS automation defaults must open the App Group suite by name."
+Assert-True ($automationDefaultsText.Contains('group.cn.classisland.ios.automation')) "Managed iOS automation defaults must use the configured App Group identifier."
+$automationIntentSourceReferences = ([regex]::Matches($nativeProjectText, 'ClassIslandAutomationIntent\.swift in Sources')).Count
+Assert-True ($automationIntentSourceReferences -eq 4) "The automation intent must be compiled into both the main-app bridge and an app-bundle extension target."
+$liveActivityExtensionSources = [regex]::Match($nativeProjectText, '(?s)A30000000000000000000004 /\* Sources \*/ = \{.*?\n\t\t\};')
+Assert-True ($liveActivityExtensionSources.Success -and $liveActivityExtensionSources.Value.Contains('ClassIslandAutomationIntent.swift')) "The Live Activity extension must register the automation intent so Shortcuts can discover ClassIsland."
+Assert-True ($iosEntitlementsText.Contains('com.apple.security.application-groups')) "The iOS app must enable the shared App Group used by Shortcuts."
+Assert-True ($extensionEntitlementsText.Contains('com.apple.security.application-groups')) "The Live Activity extension must enable the shared App Group used by Shortcuts."
+Assert-True ($iosEntitlementsText.Contains('group.cn.classisland.ios.automation')) "The iOS app is missing the automation App Group identifier."
+Assert-True ($extensionEntitlementsText.Contains('group.cn.classisland.ios.automation')) "The Live Activity extension is missing the automation App Group identifier."
 Assert-True (-not [regex]::IsMatch($appDelegateText, 'override\s+bool\s+OpenUrl')) "AvaloniaAppDelegate.OpenUrl is not virtual and must not be overridden."
 Assert-True ($appDelegateText.Contains('app.TryGetFeature<IActivatableLifetime>()')) "The AppDelegate must subscribe to Avalonia protocol activation."
 Assert-True ($appDelegateText.Contains('_activatableLifetime.Activated += OnActivated')) "The AppDelegate must handle protocol activation events."
@@ -363,7 +386,7 @@ Assert-True ($pluginsSettingsPageText.Contains('ZipArchiveSafety.ValidateForExtr
 Assert-True ($managementConnectionText.Contains('var hash = SHA256.HashData(ClientGuid.ToByteArray())')) "iOS management identity must have a stable privacy-safe fallback when MAC addresses are unavailable."
 $hideViewMethod = [regex]::Match(
     $mobileViewHostText,
-    '(?s)public\s+async\s+Task<bool>\s+HideView\(.*?(?=\n\s*private\s+async\s+Task\s+RunNavigationWithProgressAsync)')
+    '(?s)public\s+async\s+Task<bool>\s+HideView\(.*?(?=\n\s*private\s+async\s+Task\s+RunNavigationWithLoadingIndicatorAsync)')
 Assert-True ($hideViewMethod.Success) "MobileViewHost.HideView could not be validated."
 Assert-True (([regex]::Matches($hideViewMethod.Value, 'ViewDeactivating\(')).Count -eq 1) "MobileViewHost.HideView must not invoke ViewDeactivating before a normal navigation pop."
 $rootPageBranchIndex = $hideViewMethod.Value.IndexOf('if (NavigationPage.Pages?.Count() <= 1)', [StringComparison]::Ordinal)
@@ -484,6 +507,9 @@ Assert-True ($ipaNormalizationText.Contains("codesign --remove-signature")) "IPA
 Assert-True ($ipaNormalizationText.Contains("embedded.mobileprovision")) "IPA normalization must remove inherited provisioning profiles."
 Assert-True ($ipaNormalizationText.Contains("-name '*.xpc' -o -name '*.bundle'")) "IPA normalization must inspect nested XPC and resource bundles."
 Assert-True ($ipaNormalizationText.Contains('mv -f "$repacked_ipa" "$ipa_path"')) "IPA normalization must replace the input only after repacking succeeds."
+Assert-True ($ipaVerificationText.Contains('Metadata.appintents/extract.actionsdata')) "IPA verification must require app-bundle App Intents metadata."
+Assert-True ($ipaVerificationText.Contains('RunClassIslandAutomationIntent')) "IPA verification must require the ClassIsland automation intent."
+Assert-True ($ipaVerificationText.Contains('"autoShortcuts":\[[^]]')) "IPA verification must reject an empty App Shortcuts provider."
 
 Assert-True ($coverageVerificationText.Contains('GetAttribute("line-rate")')) "Coverage verification must read the Cobertura root line rate."
 Assert-True ($coverageVerificationText.Contains('$lineRate -lt $MinimumLineRate')) "Coverage verification must fail below the requested threshold."

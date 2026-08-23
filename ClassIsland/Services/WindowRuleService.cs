@@ -3,6 +3,7 @@ using ClassIsland.Core.Abstractions.Services;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Diagnostics;
+using ClassIsland.Core.Helpers;
 using ClassIsland.Core.Helpers.Native;
 using ClassIsland.Core.Models.Ruleset;
 using ClassIsland.Core;
@@ -21,12 +22,27 @@ public class WindowRuleService : IWindowRuleService
     public event EventHandler<ForegroundWindowChangedEventArgs>? ForegroundWindowChanged;
 
 
+    private readonly bool _isWindowRuleSupported;
     private bool _isMoving = false;
 
     public WindowRuleService(ILogger<WindowRuleService> logger, IRulesetService rulesetService)
+        : this(logger, rulesetService, PlatformHelper.IsAppleMobile)
+    {
+    }
+
+    internal WindowRuleService(
+        ILogger<WindowRuleService> logger,
+        IRulesetService rulesetService,
+        bool isAppleMobile)
     {
         Logger = logger;
         RulesetService = rulesetService;
+        _isWindowRuleSupported = !isAppleMobile;
+
+        if (!_isWindowRuleSupported)
+        {
+            return;
+        }
         
         ForegroundWindowChanged += ((_, _) => RulesetService.NotifyStatusChanged());
         PlatformServices.WindowPlatformService.RegisterForegroundWindowChangedEvent((_, e) => ForegroundWindowChanged?.Invoke(this, e));
@@ -103,6 +119,11 @@ public class WindowRuleService : IWindowRuleService
 
     public unsafe bool IsForegroundWindowClassIsland()
     {
+        if (!_isWindowRuleSupported)
+        {
+            return false;
+        }
+
         var pid = PlatformServices.WindowPlatformService.GetWindowPid(PlatformServices.WindowPlatformService
             .ForegroundWindowHandle);
         var process = Process.GetProcessById(pid);

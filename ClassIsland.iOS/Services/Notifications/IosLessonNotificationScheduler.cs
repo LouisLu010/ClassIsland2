@@ -6,14 +6,15 @@ using UserNotifications;
 namespace ClassIsland.iOS.Services.Notifications;
 
 /// <summary>
-/// 仅管理 ClassIsland 课程提醒前缀下的 iOS 本地通知。
+/// 仅管理 ClassIsland 课程提醒与原生自动化前缀下的 iOS 本地通知。
 /// </summary>
 internal sealed class IosLessonNotificationScheduler(
     LessonPreparationNotificationTimeline lessonPreparationTimeline,
     IosNotificationMutationGate mutationGate)
 {
-    private const string IdentifierPrefix = "classisland.lessons.";
-    internal const string CategoryIdentifier = "classisland.lessons";
+    private const string LessonIdentifierPrefix = "classisland.lessons.";
+    private static readonly string[] ManagedIdentifierPrefixes =
+        [LessonIdentifierPrefix, "classisland.automation."];
     // 保留旧 key 以迁移早期测试包只存 identifier 的格式。
     private const string PreparationHistoryKey = "classisland.lessons.catch-up-history";
     private const int MaximumPreparationHistoryLength = 128 * 1024;
@@ -76,7 +77,7 @@ internal sealed class IosLessonNotificationScheduler(
             .Select(x => x.Identifier)
             .ToHashSet(StringComparer.Ordinal);
         var protectedImminentIdentifiers = pending
-            .Where(x => x.Identifier.StartsWith(IdentifierPrefix, StringComparison.Ordinal) &&
+            .Where(x => IsManagedIdentifier(x.Identifier) &&
                         !selectedIdentifiers.Contains(x.Identifier) &&
                         IsImminentPendingNotification(x, systemNow))
             .Select(x => x.Identifier)
@@ -165,7 +166,7 @@ internal sealed class IosLessonNotificationScheduler(
             desiredNativeIdentifiers,
             requestsToSubmit.Select(x => x.Identifier),
             pendingIdentifiers,
-            IdentifierPrefix,
+            ManagedIdentifierPrefixes,
             IosNotificationCapacityPolicy.MaximumPendingNotificationCount);
         var requestsToSubmitByIdentifier = requestsToSubmit.ToDictionary(
             x => x.Identifier,
@@ -221,7 +222,7 @@ internal sealed class IosLessonNotificationScheduler(
                     EnsureConfirmedIdentifiers(
                         identifiersRequiredDuringSwap,
                         confirmedAfterStep,
-                        $"提交课程通知 {step.Identifier} 后");
+                        $"提交托管通知 {step.Identifier} 后");
                 }
             }
 
@@ -232,7 +233,7 @@ internal sealed class IosLessonNotificationScheduler(
             EnsureConfirmedIdentifiers(
                 plan.RequestedIdentifiers,
                 confirmedNativeIdentifiers,
-                "提交新的课程通知后");
+                "提交新的托管通知后");
 
             if (plan.ObsoleteIdentifiersToRemoveAfterUpsert.Count > 0)
             {
@@ -249,7 +250,7 @@ internal sealed class IosLessonNotificationScheduler(
             EnsureConfirmedIdentifiers(
                 plan.RequestedIdentifiers,
                 confirmedNativeIdentifiers,
-                "清理旧课程通知后");
+                "清理旧托管通知后");
         }
         catch (Exception synchronizationException)
         {
@@ -270,7 +271,7 @@ internal sealed class IosLessonNotificationScheduler(
                 var restoredPendingPreparationIdentifiers =
                     (await notificationCenter.GetPendingNotificationRequestsAsync() ?? [])
                     .Select(x => x.Identifier)
-                    .Where(x => x.StartsWith(IdentifierPrefix, StringComparison.Ordinal) &&
+                    .Where(x => x.StartsWith(LessonIdentifierPrefix, StringComparison.Ordinal) &&
                                 x.EndsWith(".prepare", StringComparison.Ordinal))
                     .ToArray();
                 lessonPreparationTimeline.ReconcileScheduledNotifications(
@@ -380,9 +381,7 @@ internal sealed class IosLessonNotificationScheduler(
         return new IosLessonNotificationSynchronizationResult(
             synchronizedRequests,
             shouldRetry,
-            pending.Count(x => !x.Identifier.StartsWith(
-                IdentifierPrefix,
-                StringComparison.Ordinal)) +
+            pending.Count(x => !IsManagedIdentifier(x.Identifier)) +
             plan.RequestedIdentifiers.Count <
             IosNotificationCapacityPolicy.MaximumPendingNotificationCount);
     }
@@ -393,7 +392,7 @@ internal sealed class IosLessonNotificationScheduler(
         DateTimeOffset systemNow)
     {
         var nonManagedPendingCount = pending.Count(x =>
-            !x.Identifier.StartsWith(IdentifierPrefix, StringComparison.Ordinal));
+            !IsManagedIdentifier(x.Identifier));
         var maximumManagedCount = IosNotificationCapacityPolicy
             .GetMaximumManagedNotificationCount(
                 IosLessonNotificationScheduleFactory.MaximumPendingNotifications,
@@ -409,7 +408,7 @@ internal sealed class IosLessonNotificationScheduler(
                 .Select(x => x.Identifier)
                 .ToHashSet(StringComparer.Ordinal);
             var protectedImminentCount = pending.Count(x =>
-                x.Identifier.StartsWith(IdentifierPrefix, StringComparison.Ordinal) &&
+                IsManagedIdentifier(x.Identifier) &&
                 !iterationSelectedIdentifiers.Contains(x.Identifier) &&
                 IsImminentPendingNotification(x, systemNow));
             var adjustedMaximum = IosNotificationCapacityPolicy
@@ -436,7 +435,7 @@ internal sealed class IosLessonNotificationScheduler(
             .Select(x => x.Identifier)
             .ToHashSet(StringComparer.Ordinal);
         var hasProtectedImminentRequest = pending.Any(x =>
-            x.Identifier.StartsWith(IdentifierPrefix, StringComparison.Ordinal) &&
+            IsManagedIdentifier(x.Identifier) &&
             !selectedIdentifiers.Contains(x.Identifier) &&
             IsImminentPendingNotification(x, systemNow));
         return new CapacitySelectionResult(
@@ -449,6 +448,10 @@ internal sealed class IosLessonNotificationScheduler(
         pending.Any(x => x.Identifier.StartsWith(
             IosNotificationCapacityPolicy.ImmediateFallbackIdentifierPrefix,
             StringComparison.Ordinal));
+
+    private static bool IsManagedIdentifier(string identifier) =>
+        ManagedIdentifierPrefixes.Any(prefix =>
+            identifier.StartsWith(prefix, StringComparison.Ordinal));
 
     private static async Task SubmitRequestAsync(
         UNUserNotificationCenter notificationCenter,
@@ -472,8 +475,8 @@ internal sealed class IosLessonNotificationScheduler(
         {
             Title = request.Title,
             Body = request.Body,
-            CategoryIdentifier = CategoryIdentifier,
-            ThreadIdentifier = CategoryIdentifier
+            CategoryIdentifier = request.CategoryIdentifier,
+            ThreadIdentifier = request.CategoryIdentifier
         };
         if (request.PlaySound)
         {
@@ -504,9 +507,9 @@ internal sealed class IosLessonNotificationScheduler(
         }
 
         var exceptions = new List<Exception>();
-        // 恢复完整的原课程排程；iOS 达到上限时也可能静默淘汰未直接修改的请求。
-        foreach (var identifier in pendingByIdentifier.Keys.Where(x =>
-                     x.StartsWith(IdentifierPrefix, StringComparison.Ordinal)))
+        // 恢复完整的原托管排程；iOS 达到上限时也可能静默淘汰未直接修改的请求。
+        foreach (var identifier in pendingByIdentifier.Keys.Where(
+                     IsManagedIdentifier))
         {
             try
             {
@@ -522,7 +525,7 @@ internal sealed class IosLessonNotificationScheduler(
         try
         {
             var originalManagedIdentifiers = pendingByIdentifier.Keys
-                .Where(x => x.StartsWith(IdentifierPrefix, StringComparison.Ordinal))
+                .Where(IsManagedIdentifier)
                 .ToArray();
             var restoredIdentifiers = await GetConfirmedIdentifiersAsync(
                 notificationCenter,
@@ -582,7 +585,7 @@ internal sealed class IosLessonNotificationScheduler(
         if (missingIdentifiers.Count > 0)
         {
             throw new InvalidOperationException(
-                $"{operation}，iOS 未保留或送达以下课程通知：" +
+                $"{operation}，iOS 未保留或送达以下托管通知：" +
                 string.Join(", ", missingIdentifiers));
         }
     }
@@ -696,11 +699,11 @@ internal sealed class IosLessonNotificationScheduler(
                string.Equals(content.Body, request.Body, StringComparison.Ordinal) &&
                string.Equals(
                    content.CategoryIdentifier,
-                   CategoryIdentifier,
+                   request.CategoryIdentifier,
                    StringComparison.Ordinal) &&
                string.Equals(
                    content.ThreadIdentifier,
-                   CategoryIdentifier,
+                   request.CategoryIdentifier,
                    StringComparison.Ordinal) &&
                (content.Sound != null) == request.PlaySound;
     }
@@ -742,7 +745,7 @@ internal sealed class IosNotificationSynchronizationRollbackException(
     Exception synchronizationException,
     IReadOnlyCollection<Exception> rollbackExceptions)
     : Exception(
-        "回滚 iOS/iPadOS 课程通知排程失败，当前原生排程状态无法确认。",
+        "回滚 iOS/iPadOS 托管通知排程失败，当前原生排程状态无法确认。",
         new AggregateException(
             new[] { synchronizationException }.Concat(rollbackExceptions)))
 {

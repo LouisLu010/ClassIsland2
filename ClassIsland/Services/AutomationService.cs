@@ -39,10 +39,18 @@ public class AutomationService : ObservableRecipient, IAutomationService
     readonly IProfileService ProfileService;
     readonly ILessonsService LessonsService;
     readonly IExactTimeService ExactTimeService;
+    readonly IAutomationCompatibilityService AutomationCompatibilityService;
 
-    public AutomationService(ILogger<AutomationService> logger, IRulesetService rulesetService, SettingsService settingsService,
-        IActionService actionService, IWindowRuleService windowRuleService, IProfileService profileService, ILessonsService lessonsService,
-        IExactTimeService exactTimeService) : base()
+    public AutomationService(
+        ILogger<AutomationService> logger,
+        IRulesetService rulesetService,
+        SettingsService settingsService,
+        IActionService actionService,
+        IWindowRuleService windowRuleService,
+        IProfileService profileService,
+        ILessonsService lessonsService,
+        IExactTimeService exactTimeService,
+        IAutomationCompatibilityService automationCompatibilityService) : base()
     {
         Logger = logger;
         RulesetService = rulesetService;
@@ -52,6 +60,7 @@ public class AutomationService : ObservableRecipient, IAutomationService
         ProfileService = profileService;
         LessonsService = lessonsService;
         ExactTimeService = exactTimeService;
+        AutomationCompatibilityService = automationCompatibilityService;
 
         LoadConfig();
         RefreshConfigs();
@@ -277,6 +286,9 @@ public class AutomationService : ObservableRecipient, IAutomationService
 
     void LoadWorkflow(Workflow workflow)
     {
+        var compatibilityMonitor = new AutomationWorkflowChangeMonitor(workflow);
+        compatibilityMonitor.Changed += CompatibilityMonitorOnChanged;
+        UpdatePlatformCompatibility();
         // Logger.LogInformation("加载工作流 {}", workflow.ActionSet.Name);
         workflow.Triggers.CollectionChanged += TriggersOnCollectionChanged;
         workflow.ActionSet.PropertyChanged += ActionSetOnPropertyChanged;
@@ -287,11 +299,19 @@ public class AutomationService : ObservableRecipient, IAutomationService
             LoadTrigger(workflow, trigger);
         }
 
+
+        void CompatibilityMonitorOnChanged(object? sender, EventArgs e) =>
+            UpdatePlatformCompatibility();
+
+        void UpdatePlatformCompatibility() =>
+            workflow.PlatformCompatibilityIssues = AutomationCompatibilityService.Evaluate(workflow);
         Logger.LogDebug("成功加载工作流 {}", workflow.ActionSet.Name);
         return;
 
         void WorkflowOnUnloading(object? sender, EventArgs e)
         {
+            compatibilityMonitor.Changed -= CompatibilityMonitorOnChanged;
+            compatibilityMonitor.Dispose();
             workflow.Unloading -= WorkflowOnUnloading;
             workflow.ActionSet.PropertyChanged -= ActionSetOnPropertyChanged;
             workflow.Triggers.CollectionChanged -= TriggersOnCollectionChanged;
