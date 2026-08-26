@@ -79,7 +79,13 @@ public static class Program
             Environment.SetEnvironmentVariable("QT_SCALE_FACTORS", null);
         }
 
-        var mutex = new Mutex(true, "Global\\ClassIsland.Lock", out var createNew);
+        // 浏览器端不支持命名 Mutex，且单实例保护在浏览器中没有意义。
+        Mutex? mutex = null;
+        var createNew = true;
+        if (!OperatingSystem.IsBrowser())
+        {
+            mutex = new Mutex(true, "Global\\ClassIsland.Lock", out createNew);
+        }
 
         if (!createNew)
         {
@@ -103,7 +109,8 @@ public static class Program
             }
         }
 
-        var sentryEnabled = GlobalStorageService.GetValue("IsSentryEnabled") is "1" or null;
+        var sentryEnabled = !OperatingSystem.IsBrowser()
+                            && GlobalStorageService.GetValue("IsSentryEnabled") is "1" or null;
         if (sentryEnabled)
         {
             SentrySdk.Init(ConfigureSentry);

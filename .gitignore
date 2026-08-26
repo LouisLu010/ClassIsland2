@@ -371,3 +371,6 @@ cipx/
 
 **/.idea/avalonia.xml
 **/.idea/copilot.*
+
+# 本地调试脚手架与探测产物
+.workflow/

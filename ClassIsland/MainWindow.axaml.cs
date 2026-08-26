@@ -69,7 +69,7 @@ namespace ClassIsland;
 /// Interaction logic for MainWindow.xaml
 /// </summary>
 [PseudoClasses(":dock-top", ":dock-bottom", ":edit-mode", ":windowed", ":no-windowed-transparent")]
-public partial class MainWindow : Window, ITopmostEffectPlayer
+public partial class MainWindow : Window, ITopmostEffectPlayer, Controls.IMainWindowLineHost
 {
     #region Fields & Properties
     // public static readonly ICommand TrayIconLeftClickedCommand = new RoutedCommand();
@@ -341,7 +341,8 @@ public partial class MainWindow : Window, ITopmostEffectPlayer
             }
         }
 #if DEBUG
-        if (!System.OperatingSystem.IsAndroid())
+        // JetBrains.HabitatDetector 不识别 Android / wasm 平台标识，调用即抛。
+        if (!System.OperatingSystem.IsAndroid() && !System.OperatingSystem.IsBrowser())
             MemoryProfiler.GetSnapshot("MainWindow OnContentRendered");
 #endif
         TutorialService.BeginNotCompletedTutorials("classisland.getStarted.welcome/init");

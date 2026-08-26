@@ -280,6 +280,7 @@
                                       ci:MainWindowStylesAssist.IsIslandSeperated="{Binding ViewModel.Settings.IsIslandSeperated}"
                                       ci:MainWindowStylesAssist.IsProgressAccuracyReduced="{Binding ViewModel.Settings.ReduceProgressAccuracy}"
                                       ci:MainWindowStylesAssist.CornerRadius="{Binding ViewModel.Settings.RadiusX}"
+                                      ci:MainWindowStylesAssist.WindowDockingLocation="{Binding ViewModel.Settings.WindowDockingLocation}"
                                       ci:MainWindowStylesAssist.BackgroundOpacity="{Binding ViewModel.Settings.Opacity}"
                                       ci:MainWindowStylesAssist.BackgroundCorlor="{Binding ViewModel.Settings.BackgroundColor}"
                                       ci:MainWindowStylesAssist.IsCustomBackgroundColorEnabled="{Binding ViewModel.Settings.IsCustomBackgroundColorEnabled}">

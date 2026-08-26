@@ -68,7 +68,12 @@ public class ExactTimeService : ObservableRecipient, IExactTimeService
         };
         try
         {
-            NtpClient = new NtpClient(SettingsService.Settings.ExactTimeServer);
+            // 浏览器端不支持 System.Net.Sockets，NtpClient.Query() 必然抛异常并反复重试。
+            // 保持 NtpClient 为 null，让 Sync() 走既有的「无授时客户端」跳过分支。
+            if (!System.OperatingSystem.IsBrowser())
+            {
+                NtpClient = new NtpClient(SettingsService.Settings.ExactTimeServer);
+            }
         }
         catch (Exception ex)
         {
@@ -108,7 +113,11 @@ public class ExactTimeService : ObservableRecipient, IExactTimeService
 
                 try
                 {
-                    NtpClient = new NtpClient(SettingsService.Settings.ExactTimeServer);
+                    // 同上：浏览器端不创建 NtpClient。
+                    if (!System.OperatingSystem.IsBrowser())
+                    {
+                        NtpClient = new NtpClient(SettingsService.Settings.ExactTimeServer);
+                    }
                 }
                 catch (Exception ex)
                 {

@@ -36,6 +36,14 @@ public partial class LicensePage : UserControl
 
     private void ButtonShowPrivacyLicense_OnClick(object? sender, RoutedEventArgs e)
     {
+        // DocumentReaderWindow 派生自 MyWindow，浏览器端无法构造 Window。
+        if (System.OperatingSystem.IsBrowser())
+        {
+            _ = CommonTaskDialogs.ShowDialog("隐私政策",
+                "当前平台暂不支持内置文档阅读器，请访问 https://classisland.tech 查看隐私政策。", this);
+            return;
+        }
+
         var mdReader = new DocumentReaderWindow()
         {
             Source = new Uri("avares://ClassIsland/Assets/Documents/Privacy_.md"),

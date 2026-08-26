@@ -26,12 +26,13 @@
                              RelativeSource="{RelativeSource FindAncestor, AncestorType=controls:MainWindowLine}" />
                     <Binding Path="Bounds.Width" Mode="OneWay" RelativeSource="{RelativeSource Self}" />
                     <Binding Path="Bounds.Height" Mode="OneWay" RelativeSource="{RelativeSource Self}" />
-                    <Binding Path="ViewModel.Settings.WindowDockingLocation" Mode="OneWay"
-                             RelativeSource="{RelativeSource FindAncestor, AncestorType=classIsland:MainWindow}" />
-                    <Binding Path="ViewModel.Settings.RadiusX" Mode="OneWay"
-                             RelativeSource="{RelativeSource FindAncestor, AncestorType=classIsland:MainWindow}" />
-                    <Binding Path="ViewModel.Settings.RadiusX" Mode="OneWay"
-                             RelativeSource="{RelativeSource FindAncestor, AncestorType=classIsland:MainWindow}" />
+                    <!--
+                        改用继承式附加属性而非 FindAncestor MainWindow：后者在没有主窗口祖先的
+                        宿主（浏览器端课表条）里会静默失效，导致裁剪与圆角退化且无异常可查。
+                    -->
+                    <Binding Path="$self.(ci:MainWindowStylesAssist.WindowDockingLocation)" Mode="OneWay" />
+                    <Binding Path="$self.(ci:MainWindowStylesAssist.CornerRadius)" Mode="OneWay" />
+                    <Binding Path="$self.(ci:MainWindowStylesAssist.CornerRadius)" Mode="OneWay" />
                 </MultiBinding>
             </Setter.Value>
         </Setter>

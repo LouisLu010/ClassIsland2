@@ -253,7 +253,9 @@ public partial class App : AppBase, IAppHost
         Environment.CurrentDirectory = Path.GetDirectoryName(Environment.ProcessPath) ?? "./";
         ActivatePackageType();
         ActivateAppDirectories();
-        if (!Design.IsDesignMode && !System.OperatingSystem.IsMacOS() && !System.OperatingSystem.IsAndroid())
+        // 浏览器端构建禁用了 HotAvalonia，其 IL 注入不会发生，调用这个方法会抛 InvalidProgramException。
+        if (!Design.IsDesignMode && !System.OperatingSystem.IsMacOS() && !System.OperatingSystem.IsAndroid()
+            && !System.OperatingSystem.IsBrowser())
         {
             this.EnableHotReload();
         }
@@ -712,7 +714,8 @@ public partial class App : AppBase, IAppHost
             AppDomain.CurrentDomain.AssemblyLoad += (o, args) => Logger.LogTrace("加载程序集：{AssemblyFullName} ({AssemblyLocation})", args.LoadedAssembly.FullName, args.LoadedAssembly.Location);
         }
 #if DEBUG
-        if (!System.OperatingSystem.IsAndroid())
+        // JetBrains.HabitatDetector 不识别 Android / wasm 平台标识，调用即抛。
+        if (!System.OperatingSystem.IsAndroid() && !System.OperatingSystem.IsBrowser())
         {
             MemoryProfiler.GetSnapshot("Host built");
         }
@@ -816,7 +819,8 @@ public partial class App : AppBase, IAppHost
         _ = IAppHost.Host.StartAsync();
         IAppHost.GetService<IPluginMarketService>().LoadPluginSource();
         
-        if (!Settings.IsWelcomeWindowShowed || ApplicationCommand.Refreshing || ApplicationCommand.Onboarding)
+        if ((!Settings.IsWelcomeWindowShowed && !ApplicationCommand.SkipOobe)
+            || ApplicationCommand.Refreshing || ApplicationCommand.Onboarding)
         {
             if (Settings.IsSplashEnabled)
             {
@@ -882,7 +886,8 @@ public partial class App : AppBase, IAppHost
         GetService<ISplashService>().SetDetailedStatus("正在启动主界面所需的服务");
         GetService<ISplashService>().CurrentProgress = 55;
 #if DEBUG
-        if (!System.OperatingSystem.IsAndroid())
+        // JetBrains.HabitatDetector 不识别 Android / wasm 平台标识，调用即抛。
+        if (!System.OperatingSystem.IsAndroid() && !System.OperatingSystem.IsBrowser())
             MemoryProfiler.GetSnapshot("Pre MainWindow init");
 #endif
         if (isDesktop)
@@ -893,7 +898,8 @@ public partial class App : AppBase, IAppHost
             GetService<ISplashService>().CurrentProgress = 80;
             GetService<ISplashService>().SetDetailedStatus("正在初始化主界面（步骤 2/2）");
 #if DEBUG
-        if (!System.OperatingSystem.IsAndroid())
+        // JetBrains.HabitatDetector 不识别 Android / wasm 平台标识，调用即抛。
+        if (!System.OperatingSystem.IsAndroid() && !System.OperatingSystem.IsBrowser())
             MemoryProfiler.GetSnapshot("Pre MainWindow show");
 #endif
             if (!Design.IsDesignMode)

@@ -263,7 +263,13 @@ public class AdvancedManagedContextDragBehavior : StyledElementBehavior<Control>
             }
             : value;
 
-        DragPreviewService.Show(actualValue, PreviewTemplate, tl, client, previewOffset, PreviewOpacity);
+        // DragPreviewService 内部用一个浮动 Window 承载跟随光标的拖动预览，
+        // 浏览器端无法构造 Window（构造即抛 NotSupportedException）。
+        // 跳过预览，拖放本身仍然可用。
+        if (!System.OperatingSystem.IsBrowser())
+        {
+            DragPreviewService.Show(actualValue, PreviewTemplate, tl, client, previewOffset, PreviewOpacity);
+        }
 
         try
         {
@@ -284,7 +290,10 @@ public class AdvancedManagedContextDragBehavior : StyledElementBehavior<Control>
                 AssociatedObject.DetachedFromVisualTree -= AssociatedObject_DetachedFromVisualTree;
             DetachTopLevelHandlers();
             try { triggerEvent.Pointer?.Capture(null); } catch { }
-            DragPreviewService.Hide();
+            if (!System.OperatingSystem.IsBrowser())
+            {
+                DragPreviewService.Hide();
+            }
             _internalDragging = false;
             _internalDragTcs = null;
             s_isDragging = false;
@@ -305,7 +314,10 @@ public class AdvancedManagedContextDragBehavior : StyledElementBehavior<Control>
         var previewOffset = UsePointerRelativePreviewOffset && _calculatedPreviewOffset.HasValue
             ? _calculatedPreviewOffset.Value
             : PreviewOffset;
-        DragPreviewService.Move(_topLevel, client, previewOffset);
+        if (!System.OperatingSystem.IsBrowser())
+        {
+            DragPreviewService.Move(_topLevel, client, previewOffset);
+        }
         ManagedDragDropService.Instance.Move(client);
     }
 

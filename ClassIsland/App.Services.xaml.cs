@@ -97,7 +97,15 @@ public partial class App
         services.AddSingleton<IAnnouncementService, AnnouncementService>();
         services.AddSingleton<ILocationService>(PlatformServices.LocationService);
         services.AddSingleton<IXamlThemeService, XamlThemeService>();
-        services.AddSingleton<IAudioService, AudioService>();
+        // SoundFlow 的 MiniAudio 后端依赖平台原生库，浏览器端改用空实现。
+        if (System.OperatingSystem.IsBrowser())
+        {
+            services.AddSingleton<IAudioService, BrowserAudioService>();
+        }
+        else
+        {
+            services.AddSingleton<IAudioService, AudioService>();
+        }
         services.AddSingleton<ITutorialService, TutorialService>();
         services.AddSingleton<IRefreshingService, RefreshingService>();
         // ViewModels
@@ -130,7 +138,15 @@ public partial class App
         services.AddTransient<DebugPageViewModel>();
         services.AddTransient<RefreshingSettingsViewModel>();
         // Views
-        services.AddTransient<ITopmostEffectPlayer>(x => x.GetRequiredService<TopmostEffectWindow>());
+        // TopmostEffectWindow 派生自 Window，浏览器端无法构造；换成空实现。
+        if (System.OperatingSystem.IsBrowser())
+        {
+            services.AddSingleton<ITopmostEffectPlayer, BrowserTopmostEffectPlayer>();
+        }
+        else
+        {
+            services.AddTransient<ITopmostEffectPlayer>(x => x.GetRequiredService<TopmostEffectWindow>());
+        }
         services.AddSingleton<MainWindow>();
         // services.AddTransient<SplashWindowBase, SplashWindow>();
         // services.AddTransient<FeatureDebugWindow>();
@@ -151,7 +167,16 @@ public partial class App
         services.AddTransient<TutorialEditorWindow>();
         services.AddSingleton<TutorialCenterWindow>();
         services.AddTransient<TutorialControllerWindow>();
-        services.AddTransient<ISplashProvider, SplashWindow>();
+        // SplashWindow 派生自 Window，浏览器端无法构造；改用基于 ViewBase 的 SplashView。
+        // 注意这条注册不在 isDesktop 门控内，设置页的「预览启动界面」按钮会直接解析它。
+        if (System.OperatingSystem.IsBrowser())
+        {
+            services.AddTransient<ISplashProvider, BrowserSplashProvider>();
+        }
+        else
+        {
+            services.AddTransient<ISplashProvider, SplashWindow>();
+        }
         services.AddTransient<MainView>();
         // 设置页面分组
         services.AddSettingsPageGroup("classisland.general", "\uef27", "通用");
@@ -211,8 +236,18 @@ public partial class App
             LogMaskingHelper.Rules.Add(new LogMaskRule(new(@"(longitude=)(\d*\.?\d*)"), 2));
 
             builder.AddFilter<EventLogLoggerProvider>(level => level >= LogLevel.Error);
-            builder.AddConsoleFormatter<ClassIslandConsoleFormatter, ConsoleFormatterOptions>();
-            builder.AddConsole(console => { console.FormatterName = "classisland"; });
+            // 浏览器端是单线程环境，ConsoleLoggerProcessor 的后台线程无法启动
+            // （Thread.Start 抛 PlatformNotSupportedException）。改用直写 stdout 的
+            // provider，日志同样会出现在浏览器控制台里。
+            if (System.OperatingSystem.IsBrowser())
+            {
+                builder.AddSimpleConsoleFallback();
+            }
+            else
+            {
+                builder.AddConsoleFormatter<ClassIslandConsoleFormatter, ConsoleFormatterOptions>();
+                builder.AddConsole(console => { console.FormatterName = "classisland"; });
+            }
             builder.AddSentry(o =>
             {
                 o.InitializeSdk = false;

@@ -40,7 +40,7 @@ public class XamlThemeService : ObservableRecipient, IXamlThemeService
     private IComponentsService ComponentsService { get; }
     private Styles RootStyles { get; set; } = [];
 
-    public Window? MainWindow { get; set; }
+    public Control? MainWindow { get; set; }
     
     private Border? ResourceLoaderBorder { get; set; }
 

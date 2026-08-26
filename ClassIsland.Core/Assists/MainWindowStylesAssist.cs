@@ -26,6 +26,20 @@ public class MainWindowStylesAssist
 
     public static void SetIslandSpacing(Control obj, double value) => obj.SetValue(IslandSpacingProperty, value);
     public static double GetIslandSpacing(Control obj) => obj.GetValue(IslandSpacingProperty);
+
+    /// <summary>
+    /// 主界面停靠方位。
+    /// </summary>
+    /// <remarks>
+    /// 主题样式原先通过 <c>FindAncestor AncestorType=MainWindow</c> 直接读取此值，
+    /// 那样在没有主窗口祖先的宿主（浏览器端的课表条）里绑定会静默失效。
+    /// 改为继承式附加属性后，任何宿主都能提供。
+    /// </remarks>
+    public static readonly AttachedProperty<int> WindowDockingLocationProperty =
+        AvaloniaProperty.RegisterAttached<MainWindowStylesAssist, Control, int>("WindowDockingLocation", inherits:true);
+
+    public static void SetWindowDockingLocation(Control obj, int value) => obj.SetValue(WindowDockingLocationProperty, value);
+    public static int GetWindowDockingLocation(Control obj) => obj.GetValue(WindowDockingLocationProperty);
     
 
     public static readonly AttachedProperty<bool> IsProgressAccuracyReducedProperty =

@@ -264,11 +264,17 @@ public class MainWindowLine : ContentControl, INotificationConsumer
 
     private bool _isTemplateApplied = false;
 
-    private MainWindow? _mainWindow;
+    private IMainWindowLineHost? _mainWindow;
 
-    public MainWindow MainWindow => _mainWindow ??= TopLevel.GetTopLevel(this) as MainWindow ??
-        this.FindAncestorOfType<MainWindow>() ??
-        throw new InvalidOperationException("MainWindowLine is not attached to MainWindow.");
+    /// <summary>
+    /// 承载此课表条的宿主。桌面端是 <see cref="ClassIsland.MainWindow"/>；
+    /// 在无法构造 Window 的平台（浏览器 WASM）上宿主可能不实现该接口，此时为 <c>null</c>，
+    /// 相关的窗口级功能（鼠标移入淡出、置顶锁、DPI 换算）会被跳过。
+    /// </summary>
+    public IMainWindowLineHost? MainWindow => _mainWindow ??= ResolveHost();
+
+    private IMainWindowLineHost? ResolveHost() =>
+        TopLevel.GetTopLevel(this) as IMainWindowLineHost ?? this.FindAncestorOfType<IMainWindowLineHost>();
 
     public SettingsService SettingsService { get; } = IAppHost.GetService<SettingsService>();
 
@@ -430,11 +436,17 @@ public class MainWindowLine : ContentControl, INotificationConsumer
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
         _isUnloading = false;
-        _mainWindow = TopLevel.GetTopLevel(this) as MainWindow ?? this.FindAncestorOfType<MainWindow>() ??
-            throw new InvalidOperationException("MainWindowLine is not attached to MainWindow.");
-        MainWindow.MousePosChanged += MainWindowOnMousePosChanged;
-        MainWindow.RawInputEvent += MainWindowOnRawInputEvent;
-        MainWindow.MainWindowAnimationEvent += MainWindowOnMainWindowAnimationEvent;
+        _mainWindow = ResolveHost();
+        if (_mainWindow != null)
+        {
+            _mainWindow.MousePosChanged += MainWindowOnMousePosChanged;
+            _mainWindow.RawInputEvent += MainWindowOnRawInputEvent;
+            _mainWindow.MainWindowAnimationEvent += MainWindowOnMainWindowAnimationEvent;
+        }
+        else
+        {
+            Logger.LogDebug("宿主未实现 IMainWindowLineHost，跳过窗口级事件订阅。");
+        }
         SettingsService.Settings.PropertyChanged += SettingsOnPropertyChanged;
         UpdateHiddenState();
         UpdateFadeStatus();
@@ -452,9 +464,12 @@ public class MainWindowLine : ContentControl, INotificationConsumer
     private void OnUnloaded(object? sender, RoutedEventArgs e)
     {
         _isUnloading = true;
-        MainWindow.MousePosChanged -= MainWindowOnMousePosChanged;
-        MainWindow.RawInputEvent -= MainWindowOnRawInputEvent;
-        MainWindow.MainWindowAnimationEvent -= MainWindowOnMainWindowAnimationEvent;
+        if (_mainWindow != null)
+        {
+            _mainWindow.MousePosChanged -= MainWindowOnMousePosChanged;
+            _mainWindow.RawInputEvent -= MainWindowOnRawInputEvent;
+            _mainWindow.MainWindowAnimationEvent -= MainWindowOnMainWindowAnimationEvent;
+        }
         SettingsService.Settings.PropertyChanged -= SettingsOnPropertyChanged;
         NotificationHostService.UnregisterNotificationConsumer(this);
         if (Settings != null)
@@ -622,7 +637,12 @@ public class MainWindowLine : ContentControl, INotificationConsumer
         {
             return false;
         }
-        MainWindow.GetCurrentDpi(out var dpiX, out var dpiY);
+        // 没有窗口宿主时拿不到 DPI，也没有全局鼠标坐标可比，判定直接视为「不在范围内」。
+        if (MainWindow is not { } host)
+        {
+            return false;
+        }
+        host.GetCurrentDpi(out var dpiX, out var dpiY);
         var scale = SettingsService.Settings.Scale;
         //Debug.WriteLine($"Window: {Left * dpiX} {Top * dpiY};; Cursor: {ptr.X} {ptr.Y} ;; dpi: {dpiX}");
         var root = GridWrapper.PointToScreen(new Point(0, 0));
@@ -731,11 +751,11 @@ public class MainWindowLine : ContentControl, INotificationConsumer
                     MaskContent = request.MaskContent;  // 加载 Mask 元素
                     if (settings.IsNotificationTopmostEnabled && SettingsService.Settings.AllowNotificationTopmost)
                     {
-                        MainWindow.AcquireTopmostLock(TopmostLock);
+                        MainWindow?.AcquireTopmostLock(TopmostLock);
                     }
                     else
                     {
-                        MainWindow.ReleaseTopmostLock(TopmostLock);
+                        MainWindow?.ReleaseTopmostLock(TopmostLock);
                     }
                     
                     PseudoClasses.Set(":mask-anim", true);
@@ -807,7 +827,7 @@ public class MainWindowLine : ContentControl, INotificationConsumer
             await stopNotificationSoundCts.CancelAsync();
         }
         stopNotificationSoundCts?.Dispose();
-        MainWindow.ReleaseTopmostLock(TopmostLock);
+        MainWindow?.ReleaseTopmostLock(TopmostLock);
     }
 
     public int QueuedNotificationCount => _notificationQueue.Count;

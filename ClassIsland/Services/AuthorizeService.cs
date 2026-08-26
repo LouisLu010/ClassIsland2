@@ -32,7 +32,12 @@ public class AuthorizeService(ILogger<AuthorizeService> logger) : IAuthorizeServ
         {
             var credential = credentialString != null ? ConvertCredentialStringToModel(credentialString) : new Credential();
             var window = new AuthorizeWindow(credential, true);
-            var result = await window.ShowModal<bool>(parent ?? (Window)AppBase.Current.GetRootWindow());
+            // 浏览器端根视图不是 Window，强转会抛 InvalidCastException；
+            // 单视图宿主只有一个，传 null 由宿主自行决定归属。
+            var owner = parent ?? AppBase.Current.GetRootWindow() as Window;
+            var result = owner != null
+                ? await window.ShowModal<bool>(owner)
+                : await window.ShowModal<bool>();
             return !result ? credentialString : ConvertCredentialModelToString(credential);
         }
         catch (Exception e)
@@ -54,7 +59,11 @@ public class AuthorizeService(ILogger<AuthorizeService> logger) : IAuthorizeServ
         {
             var credential = ConvertCredentialStringToModel(credentialString);
             var window = new AuthorizeWindow(credential, false);
-            return await window.ShowModal<bool>(parent ?? (Window)AppBase.Current.GetRootWindow());
+            // 同上：浏览器端根视图不是 Window。
+            var owner = parent ?? AppBase.Current.GetRootWindow() as Window;
+            return owner != null
+                ? await window.ShowModal<bool>(owner)
+                : await window.ShowModal<bool>();
         }
         catch (Exception e)
         {

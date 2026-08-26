@@ -75,5 +75,12 @@ public interface IXamlThemeService
     /// </summary>
     double ActualVerticalSafeAreaPx { get; }
     
-    internal Window? MainWindow { get; set; }
+    /// <summary>
+    /// 主题样式的宿主控件，主题会挂载到它内部名为 <c>ResourceLoaderBorder</c> 的 Border 上。
+    /// </summary>
+    /// <remarks>
+    /// 桌面端就是主窗口。类型放宽到 <see cref="Control"/> 是为了让不支持 Window 的平台
+    /// （浏览器 WASM）也能用普通控件承载课表条主题。
+    /// </remarks>
+    internal Control? MainWindow { get; set; }
 }
