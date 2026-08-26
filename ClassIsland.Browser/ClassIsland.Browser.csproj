@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0-browser</TargetFramework>
+        <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <AssemblyName>ClassIsland.Browser</AssemblyName>
+        <RootNamespace>ClassIsland.Browser</RootNamespace>
+        <WasmMainJSPath>wwwroot/main.js</WasmMainJSPath>
+        <!-- 默认 ICU 分片不含 CJK，中文排序/格式化需要完整数据。 -->
+        <WasmIncludeFullIcuData>true</WasmIncludeFullIcuData>
+    </PropertyGroup>
+
+    <!-- 保留可读的异常消息。wasm 构建默认开启 UseSystemResourceKeys 以缩减体积，
+         但那会把异常消息裁剪成资源键（如 AggregateException_ctor_DefaultMessage），无法排查。 -->
+    <PropertyGroup>
+        <UseSystemResourceKeys>false</UseSystemResourceKeys>
+        <!-- wasm SDK 默认关闭反射式 JSON 序列化以便裁剪，但 ClassIsland 的档案/设置
+             读写全部依赖它（ConfigureFileHelper），关闭后反序列化直接抛异常。 -->
+        <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <WasmExtraFilesToDeploy Include="wwwroot/**" />
+    </ItemGroup>
+
+    <!-- 使 `dotnet run` 能通过 WasmAppHost 拉起浏览器宿主。 -->
+    <PropertyGroup>
+        <DefaultWasmHostConfig>browser</DefaultWasmHostConfig>
+    </PropertyGroup>
+    <ItemGroup>
+        <HostConfig Include="browser" host="browser" html-path="index.html" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia.Browser" Version="$(AvaloniaVersion)" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
+        <PackageReference Include="FluentAvaloniaUI" Version="3.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ClassIsland.Platforms.Abstractions\ClassIsland.Platforms.Abstractions.csproj" />
+        <ProjectReference Include="..\ClassIsland\ClassIsland.csproj" />
+    </ItemGroup>
+
+    <Import Project="../AvaloniaShared.props" />
+
+    <!-- 必须放在 AvaloniaShared.props 之后：那里的
+         `<HotAvalonia Condition="'$(Configuration)' == 'Debug'">True</HotAvalonia>`
+         是无条件赋值，写在导入之前会被覆盖掉。
+         HotAvalonia 的热重载依赖文件监视和运行时 XAML 重编译，浏览器端不适用。 -->
+    <PropertyGroup>
+        <HotAvalonia>False</HotAvalonia>
+        <HotAvaloniaAutoEnable>False</HotAvaloniaAutoEnable>
+    </PropertyGroup>
+</Project>

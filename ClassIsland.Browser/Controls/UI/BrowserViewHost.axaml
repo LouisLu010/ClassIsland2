@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="ClassIsland.Browser.Controls.UI.BrowserViewHost">
+    <UserControl.Styles>
+        <Style Selector="NavigationPage#NavigationPage /template/ Border#PART_NavigationBar">
+            <Setter Property="Background" Value="{x:Null}"/>
+        </Style>
+    </UserControl.Styles>
+    <DockPanel>
+        <!--
+            课表条常驻在页面顶部，对应桌面端贴屏幕边缘的主界面。
+            内容延迟到 AppStarted 后由 AttachScheduleBar() 填入——ScheduleBarHost 的构造
+            需要 DI 容器，而本宿主在 App.Init() 之前就已创建。
+        -->
+        <ContentControl x:Name="ScheduleBarContainer"
+                        DockPanel.Dock="Top"
+                        HorizontalAlignment="Center" />
+        <Grid>
+            <Grid x:Name="PageContentRoot">
+                <Grid.RenderTransform>
+                    <TranslateTransform />
+                </Grid.RenderTransform>
+                <NavigationPage x:Name="NavigationPage"
+                                Popped="NavigationPage_OnPopped">
+                </NavigationPage>
+            </Grid>
+            <Border Height="3"
+                    VerticalAlignment="Top"
+                    ClipToBounds="True"
+                    IsHitTestVisible="False">
+                <Rectangle x:Name="NavigationProgressBarFill"
+                           HorizontalAlignment="Stretch"
+                           Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                           Opacity="0" />
+            </Border>
+        </Grid>
+    </DockPanel>
+</UserControl>

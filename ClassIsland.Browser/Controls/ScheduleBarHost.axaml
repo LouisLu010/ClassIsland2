@@ -1,0 +1,81 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:ClassIsland.Controls;assembly=ClassIsland"
+             xmlns:editMode="clr-namespace:ClassIsland.Controls.EditMode;assembly=ClassIsland"
+             xmlns:ci="http://classisland.tech/schemas/xaml/core"
+             xmlns:local="clr-namespace:ClassIsland.Browser.Controls"
+             x:Class="ClassIsland.Browser.Controls.ScheduleBarHost">
+    <!--
+        桌面端课表条在浏览器端的宿主。
+        对应 ClassIsland/MainWindow.axaml 的 199-400 段，但去掉了三层窗口专属脚手架：
+          - ZoomBorder：编辑态的平移/缩放，浏览器端不需要；
+          - Canvas#LayoutContainerGrid + Panel#WorkingRoot：按屏幕工作区摆窗口用的，
+            其宽度绑定 ViewModel.ActualClientBound 默认为 0×0，保留会让整条被 arrange 成 0 宽而不可见；
+          - VisualLayerManager 与全部编辑态手柄。
+        保留 LayoutTransformControl（整体缩放）、GridRoot（外观参数注入点）、
+        ResourceLoaderBorder（主题样式与字号资源的挂载点）以及组件主链。
+    -->
+    <StackPanel x:Name="StackPanelRootContainer" VerticalAlignment="Top">
+        <LayoutTransformControl x:Name="RootLayoutTransformControl" ClipToBounds="False">
+            <LayoutTransformControl.LayoutTransform>
+                <ScaleTransform ScaleX="{Binding ViewModel.Settings.Scale, Mode=OneWay}"
+                                ScaleY="{Binding ViewModel.Settings.Scale, Mode=OneWay}" />
+            </LayoutTransformControl.LayoutTransform>
+            <Grid x:Name="GridRoot"
+                  ClipToBounds="False"
+                  HorizontalAlignment="Stretch"
+                  RenderTransformOrigin="0,0"
+                  ci:MainWindowStylesAssist.IsIslandSeperated="{Binding ViewModel.Settings.IsIslandSeperated}"
+                  ci:MainWindowStylesAssist.IsProgressAccuracyReduced="{Binding ViewModel.Settings.ReduceProgressAccuracy}"
+                  ci:MainWindowStylesAssist.CornerRadius="{Binding ViewModel.Settings.RadiusX}"
+                  ci:MainWindowStylesAssist.WindowDockingLocation="{Binding ViewModel.Settings.WindowDockingLocation}"
+                  ci:MainWindowStylesAssist.BackgroundOpacity="{Binding ViewModel.Settings.Opacity}"
+                  ci:MainWindowStylesAssist.BackgroundCorlor="{Binding ViewModel.Settings.BackgroundColor}"
+                  ci:MainWindowStylesAssist.IsCustomBackgroundColorEnabled="{Binding ViewModel.Settings.IsCustomBackgroundColorEnabled}">
+                <Border ClipToBounds="False"
+                        x:Name="ResourceLoaderBorder"
+                        TextElement.FontSize="{DynamicResource MainWindowBodyFontSize}">
+                    <ItemsControl x:Name="RootMainWindowLinesItemsControl"
+                                  VerticalAlignment="Stretch"
+                                  ClipToBounds="False"
+                                  ItemsSource="{Binding ComponentsService.CurrentComponents.Lines, Mode=OneWay}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="{Binding ViewModel.Settings.MainWindowLineVerticalMargin}" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <controls:MainWindowLine
+                                    WindowDockingLocation="{Binding $self.(ci:MainWindowStylesAssist.WindowDockingLocation), Mode=OneWay}"
+                                    IsMainLine="{Binding IsMainLine}"
+                                    IsNotificationEnabled="{Binding IsNotificationEnabled}"
+                                    LineNumber="0"
+                                    HidingRules="{Binding HidingRules, Mode=OneWay}"
+                                    HideOnRule="{Binding HideOnRule, Mode=OneWay}"
+                                    HorizontalAlignment="Stretch"
+                                    Settings="{Binding}">
+                                    <editMode:EditableComponentsListBox ItemsSource="{Binding Children}"
+                                                                        Classes="root-components-control"
+                                                                        Tag="{Binding}"
+                                                                        ClipToBounds="False">
+                                        <editMode:EditableComponentsListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <ci:ComponentPresenter IsOnMainWindow="True"
+                                                                       IsRootComponent="True"
+                                                                       Settings="{Binding}"
+                                                                       HidingRules="{Binding HidingRules, Mode=OneWay}"
+                                                                       HideOnRule="{Binding HideOnRule, Mode=OneWay}"
+                                                                       Margin="6 0" />
+                                            </DataTemplate>
+                                        </editMode:EditableComponentsListBox.ItemTemplate>
+                                    </editMode:EditableComponentsListBox>
+                                </controls:MainWindowLine>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+            </Grid>
+        </LayoutTransformControl>
+    </StackPanel>
+</UserControl>
