@@ -1,4 +1,4 @@
-<Styles xmlns="https://github.com/avaloniaui"
+﻿<Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls1="clr-namespace:ClassIsland.Controls.EditMode;assembly=ClassIsland"
         xmlns:ci="http://classisland.tech/schemas/xaml/core"
@@ -250,6 +250,31 @@
                                                Opacity="0.75"
                                                StrokeDashArray="1, 1.5" />
                                 </Panel>
+                                <!--
+                                    拖放插入位置指示线。原本靠跟随光标的拖动预览判断落点，
+                                    但预览用浮动 Window 实现，浏览器端不可用，故补此指示。
+                                    左右两侧与 DropHandler 的左右半区判定一一对应。
+                                -->
+                                <Rectangle x:Name="DropIndicatorBefore"
+                                           Width="3"
+                                           HorizontalAlignment="Left"
+                                           VerticalAlignment="Stretch"
+                                           Margin="-2 2"
+                                           RadiusX="1.5"
+                                           RadiusY="1.5"
+                                           IsHitTestVisible="False"
+                                           IsVisible="{Binding $parent[ListBoxItem].(ci:ComponentDragAssist.DropSide), Converter={x:Static ci:ComponentDragAssist.IsDropBeforeConverter}}"
+                                           Fill="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Rectangle x:Name="DropIndicatorAfter"
+                                           Width="3"
+                                           HorizontalAlignment="Right"
+                                           VerticalAlignment="Stretch"
+                                           Margin="-2 2"
+                                           RadiusX="1.5"
+                                           RadiusY="1.5"
+                                           IsHitTestVisible="False"
+                                           IsVisible="{Binding $parent[ListBoxItem].(ci:ComponentDragAssist.DropSide), Converter={x:Static ci:ComponentDragAssist.IsDropAfterConverter}}"
+                                           Fill="{DynamicResource AccentFillColorDefaultBrush}" />
                                 <Panel Opacity="0">
                                     <Panel.IsVisible>
                                         <MultiBinding Converter="{x:Static BoolConverters.And}">

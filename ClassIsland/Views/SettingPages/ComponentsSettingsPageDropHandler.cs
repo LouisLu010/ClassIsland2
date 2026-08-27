@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using Avalonia.Xaml.Interactions.DragAndDrop;
 using ClassIsland.Controls.EditMode;
+using ClassIsland.Core.Assists;
 using ClassIsland.Core.Attributes;
 using ClassIsland.Core.Models.Components;
 using ClassIsland.Services;
@@ -39,11 +40,19 @@ public class ComponentsSettingsPageDropHandler(ComponentsSettingsViewModel viewM
             var index = items.IndexOf(targetItem);
             if (index >= 0)
             {
-                return (rPos.X <= listBoxItem.Bounds.Width / 2 ? index - 1 : index, true);
+                var isBefore = rPos.X <= listBoxItem.Bounds.Width / 2;
+                ComponentDragAssist.UpdateIndicator(listBox, listBoxItem, isBefore);
+                return (isBefore ? index - 1 : index, true);
             }
         }
 
         var half = pos.X > listBox.Bounds.Width / 2;
+        // 未命中具体项时，按指针在列表左右半区决定插到首位还是末位，指示线也跟着画。
+        var containers = listBox.GetRealizedContainers().OfType<ListBoxItem>().ToList();
+        ComponentDragAssist.UpdateIndicator(
+            listBox,
+            half ? containers.LastOrDefault() : containers.FirstOrDefault(),
+            !half);
         return (items.Count > 0 ? (half ? items.Count - 1 : -1) : -1, items.Count > 0);
     }
     
@@ -105,6 +114,22 @@ public class ComponentsSettingsPageDropHandler(ComponentsSettingsViewModel viewM
 
     }
     
+    /// <summary>
+    /// 拖动经过时持续刷新插入位置指示线。
+    /// </summary>
+    /// <remarks>
+    /// 必须在这里更新：<see cref="Validate"/> 只做合法性判断，
+    /// <see cref="Execute"/> 要到放下那一刻才调用，都不足以在拖动过程中给出反馈。
+    /// </remarks>
+    public override void Over(object? sender, DragEventArgs e, object? sourceContext, object? targetContext)
+    {
+        if (sender is ListBox listBox && targetContext is IList<ComponentSettings> items)
+        {
+            GetTargetIndex(listBox, e, items, null);
+        }
+        base.Over(sender, e, sourceContext, targetContext);
+    }
+
     public override bool Validate(object? sender, DragEventArgs e, object? sourceContext, object? targetContext, object? state)
     {
         if (sourceContext is not ComponentInfo && sourceContext is not ComponentSettings)
@@ -136,6 +161,11 @@ public class ComponentsSettingsPageDropHandler(ComponentsSettingsViewModel viewM
 
     public void AfterDragDrop(object? sender, PointerEventArgs e, object? context)
     {
+        // 拖动结束，清除插入位置指示线，否则会残留在最后经过的项上。
+        // 源列表与目标列表可能不是同一个，两边都要清。
+        ComponentDragAssist.ClearIndicator(_sourceListBox);
+        ComponentDragAssist.ClearIndicator(sender);
+
         ClearTransform(_sourceListBoxItem);
         foreach (var control in _sourceListBox?.Items
                      .OfType<object>()

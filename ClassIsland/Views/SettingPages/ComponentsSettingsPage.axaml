@@ -129,6 +129,35 @@
                     <Setter Property="VerticalAlignment" Value="Stretch"/>
                     <Setter Property="VerticalContentAlignment" Value="Stretch"/>
                     <Setter Property="ContextFlyout" Value="{StaticResource ComponentsOperationMenuFlyout}"/>
+                    <!--
+                        拖放插入位置指示线。原本靠跟随光标的拖动预览判断落点，
+                        但预览由浮动 Window 承载，浏览器端不可用，故补此指示。
+                        左右两侧与 DropHandler 的左右半区判定一一对应。
+                    -->
+                    <Setter Property="AdornerLayer.Adorner">
+                        <Template>
+                            <Panel ClipToBounds="False" AdornerLayer.IsClipEnabled="False">
+                                <Rectangle Width="3"
+                                           HorizontalAlignment="Left"
+                                           VerticalAlignment="Stretch"
+                                           Margin="-2 4"
+                                           RadiusX="1.5"
+                                           RadiusY="1.5"
+                                           IsHitTestVisible="False"
+                                           Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                                           IsVisible="{Binding $parent[ListBoxItem].(ci:ComponentDragAssist.DropSide), Converter={x:Static ci:ComponentDragAssist.IsDropBeforeConverter}}" />
+                                <Rectangle Width="3"
+                                           HorizontalAlignment="Right"
+                                           VerticalAlignment="Stretch"
+                                           Margin="-2 4"
+                                           RadiusX="1.5"
+                                           RadiusY="1.5"
+                                           IsHitTestVisible="False"
+                                           Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                                           IsVisible="{Binding $parent[ListBoxItem].(ci:ComponentDragAssist.DropSide), Converter={x:Static ci:ComponentDragAssist.IsDropAfterConverter}}" />
+                            </Panel>
+                        </Template>
+                    </Setter>
                 </ControlTheme>
             </Setter>
             

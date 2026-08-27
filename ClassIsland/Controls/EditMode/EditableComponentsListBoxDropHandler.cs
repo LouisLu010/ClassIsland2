@@ -1,12 +1,14 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Avalonia.Xaml.Interactions.DragAndDrop;
 using ClassIsland.Core.Abstractions.Services;
+using ClassIsland.Core.Assists;
 using ClassIsland.Core.Attributes;
 using ClassIsland.Core.Helpers.UI;
 using ClassIsland.Core.Models.Components;
@@ -34,10 +36,15 @@ public class EditableComponentsListBoxDropHandler : DropHandlerBase
             var index = items.IndexOf(targetItem);
             if (index >= 0)
             {
-                return (rPos.X <= listBoxItem.Bounds.Width / 2 ? index - 1 : index, true);
+                var isBefore = rPos.X <= listBoxItem.Bounds.Width / 2;
+                ComponentDragAssist.UpdateIndicator(listBox, listBoxItem, isBefore);
+                return (isBefore ? index - 1 : index, true);
             }
         }
 
+        // 没有命中任何项时插到末尾，把指示线画在最后一项右侧。
+        ComponentDragAssist.UpdateIndicator(
+            listBox, listBox.GetRealizedContainers().OfType<ListBoxItem>().LastOrDefault(), false);
         return (items.Count > 0 ? items.Count - 1 : -1, items.Count > 0);
     }
     
@@ -147,6 +154,23 @@ public class EditableComponentsListBoxDropHandler : DropHandlerBase
 
     }
     
+    /// <summary>
+    /// 拖动经过时持续刷新插入位置指示线。
+    /// </summary>
+    /// <remarks>
+    /// Execute 要到放下那一刻才调用，不足以在拖动过程中给出反馈，因此在这里更新。
+    /// 这里只调 GetTargetIndex 算落点，不走 ValidateCore——后者开头会设 e.Handled = true，
+    /// 在 Over 阶段那样做会阻断事件冒泡。
+    /// </remarks>
+    public override void Over(object? sender, DragEventArgs e, object? sourceContext, object? targetContext)
+    {
+        if (sender is EditableComponentsListBox { ItemsSource: IList<ComponentSettings> items } listBox)
+        {
+            GetTargetIndex(listBox, e, items, null);
+        }
+        base.Over(sender, e, sourceContext, targetContext);
+    }
+
     public override bool Validate(object? sender, DragEventArgs e, object? sourceContext, object? targetContext, object? state)
     {
         if (e.Handled)
@@ -168,12 +192,32 @@ public class EditableComponentsListBoxDropHandler : DropHandlerBase
         {
             return false;
         }
-        return sender switch
+        try
         {
-            EditableComponentsListBox listBox => ValidateCore(listBox, e, sourceContext, targetContext, true, null),
-            // ListBoxItem listBoxItem when listBoxItem.FindAncestorOfType<EditableComponentsListBox>() is { } owner =>
-            //     ValidateCore(owner, e, sourceContext, targetContext, true, listBoxItem),
-            _ => false
-        };
+            return sender switch
+            {
+                EditableComponentsListBox listBox => ValidateCore(listBox, e, sourceContext, targetContext, true, null),
+                // ListBoxItem listBoxItem when listBoxItem.FindAncestorOfType<EditableComponentsListBox>() is { } owner =>
+                //     ValidateCore(owner, e, sourceContext, targetContext, true, listBoxItem),
+                _ => false
+            };
+        }
+        finally
+        {
+            // 放下后务必清除，否则指示线会残留在最后经过的项上。
+            ComponentDragAssist.ClearIndicator(sender);
+        }
+    }
+
+    public override void Cancel(object? sender, RoutedEventArgs e)
+    {
+        ComponentDragAssist.ClearIndicator(sender);
+        base.Cancel(sender, e);
+    }
+
+    public override void Leave(object? sender, RoutedEventArgs e)
+    {
+        ComponentDragAssist.ClearIndicator(sender);
+        base.Leave(sender, e);
     }
 }
