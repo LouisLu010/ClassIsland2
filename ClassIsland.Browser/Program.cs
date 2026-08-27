@@ -125,12 +125,20 @@ internal static class Program
         // 转发查询串里传进来的应用参数（?arg=--skip-oobe 之类），排除入口项目自用的。
         // 不传 --mobile：它在整个仓库只有 App.axaml.cs 里 isDesktop 分支内一个读取点，
         // 浏览器端根本读不到，传了只会造成误解。
+        //
+        // 浏览器端默认跳过 OOBE：设置与档案不持久化（内存文件系统），每次访问都是全新状态，
+        // 再走一遍迎新向导只会干扰主界面的展示。
         var appArgs = args
             .Where(a => a.StartsWith('-') && !OwnArgs.Contains(a))
-            .ToArray();
+            .ToList();
+        if (!appArgs.Contains("--skip-oobe"))
+        {
+            appArgs.Add("--skip-oobe");
+        }
+
         Console.WriteLine($"[BROWSER-BOOT] before AppEntry, appArgs=[{string.Join(", ", appArgs)}]");
 
-        var buildApp = ClassIsland.Program.AppEntry(appArgs);
+        var buildApp = ClassIsland.Program.AppEntry(appArgs.ToArray());
 
         Console.WriteLine("[BROWSER-BOOT] after AppEntry");
 

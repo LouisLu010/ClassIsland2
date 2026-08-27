@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Controls;
@@ -76,6 +76,25 @@ public partial class BrowserViewHost : UserControl, IViewHost
         _isShowed = true;
         this.UseMyWindowExt();
         InitializeComponent();
+    }
+
+    /// <summary>
+    /// 宿主级返回按钮：关闭当前视图回到上一层。
+    /// </summary>
+    private void HostBackButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (NavigationPage.CurrentPage is ViewBase view)
+        {
+            view.Hide();
+        }
+    }
+
+    /// <summary>
+    /// 只在导航栈里还有可返回的页面时显示返回按钮。
+    /// </summary>
+    private void UpdateHostBackButton()
+    {
+        HostBackButton.IsVisible = NavigationPage.CurrentPage is ViewBase;
     }
 
     /// <summary>
@@ -438,6 +457,7 @@ public partial class BrowserViewHost : UserControl, IViewHost
         SetCurrentView(null);
         _isFirstViewShowed = false;
         _ = NavigationPage.ReplaceAsync(new ContentPage(), null);
+        UpdateHostBackButton();
     }
 
     public new void Activate()
@@ -590,6 +610,7 @@ public partial class BrowserViewHost : UserControl, IViewHost
         _isFirstViewShowed = true;
 
         SetCurrentView(view);
+        UpdateHostBackButton();
     }
 
     public async Task ShowView(ViewBase view, ViewBase? owner = null)
@@ -732,5 +753,6 @@ public partial class BrowserViewHost : UserControl, IViewHost
         ActivatedViews.Remove(viewBase);
 
         SetCurrentView(NavigationPage.CurrentPage as ViewBase);
+        UpdateHostBackButton();
     }
 }

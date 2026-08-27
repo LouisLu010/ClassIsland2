@@ -11,6 +11,14 @@
         <WasmMainJSPath>wwwroot/main.js</WasmMainJSPath>
         <!-- 默认 ICU 分片不含 CJK，中文排序/格式化需要完整数据。 -->
         <WasmIncludeFullIcuData>true</WasmIncludeFullIcuData>
+        <!--
+            禁用 IL 裁剪。ClassIsland 大量使用反射（配置/档案反序列化、反射绑定、
+            AvaloniaXamlLoader.Load 动态加载），裁剪会把反射所需成员误判为不可达而移除，
+            表现为 MissingMethodException: No parameterless constructor / 绑定失效 / 界面空白。
+            裁剪主要为了减小体积，本项目以「能显示」为优先，故关闭。
+        -->
+        <PublishTrimmed>false</PublishTrimmed>
+        <PublishAot>false</PublishAot>
     </PropertyGroup>
 
     <!-- 保留可读的异常消息。wasm 构建默认开启 UseSystemResourceKeys 以缩减体积，
@@ -42,7 +50,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\ClassIsland.Platforms.Abstractions\ClassIsland.Platforms.Abstractions.csproj" />
-        <ProjectReference Include="..\ClassIsland\ClassIsland.csproj" />
+        <ProjectReference Include="..\ClassIsland\ClassIsland.csproj">
+            <!-- 让 ClassIsland 把 Assets 内嵌进程序集，否则 Release 会裁掉中文字体。 -->
+            <AdditionalProperties>ClassIslandReferencedByBrowser=true</AdditionalProperties>
+        </ProjectReference>
     </ItemGroup>
 
     <Import Project="../AvaloniaShared.props" />

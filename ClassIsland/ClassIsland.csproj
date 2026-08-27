@@ -28,6 +28,12 @@
     <PropertyGroup>
         <ClassIslandBundleAssetsInAssembly Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Debug_MSIX'">true</ClassIslandBundleAssetsInAssembly>
         <ClassIslandBundleAssetsInAssembly Condition="'$(ClassIslandReferencedByAndroid)'=='true' And '$(Configuration)'=='Release'">true</ClassIslandBundleAssetsInAssembly>
+        <!--
+            浏览器端与 Android 同理：没有可放资源的独立文件系统，资源必须内嵌进程序集。
+            不设的话 Release 发布会把 Assets（含 HarmonyOS Sans 中文字体）裁掉，
+            线上中文全部显示为方框。
+        -->
+        <ClassIslandBundleAssetsInAssembly Condition="'$(ClassIslandReferencedByBrowser)'=='true' And '$(Configuration)'=='Release'">true</ClassIslandBundleAssetsInAssembly>
         <ClassIslandBundleAssetsInAssembly Condition="'$(ClassIslandBundleAssetsInAssembly)'==''">false</ClassIslandBundleAssetsInAssembly>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)'=='Debug_MSIX' Or '$(Configuration)'=='Release_MSIX'">

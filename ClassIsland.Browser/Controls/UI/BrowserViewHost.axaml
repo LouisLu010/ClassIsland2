@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ci="http://classisland.tech/schemas/xaml/core"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="ClassIsland.Browser.Controls.UI.BrowserViewHost">
     <UserControl.Styles>
@@ -27,6 +28,23 @@
                                 Popped="NavigationPage_OnPopped">
                 </NavigationPage>
             </Grid>
+            <!--
+                宿主级返回按钮。桌面端这些页面是独立窗口、有标题栏可关闭，
+                部分视图（如 SettingsWindowNew）因此显式设了 HasBackButton="False"；
+                浏览器端它们是压栈的视图，没有窗口标题栏，缺了返回入口就回不到主页。
+                放在宿主上而不是逐个改视图，避免影响桌面端。
+            -->
+            <Button x:Name="HostBackButton"
+                    Click="HostBackButton_OnClick"
+                    IsVisible="False"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Margin="8"
+                    Padding="8 6"
+                    CornerRadius="6"
+                    ToolTip.Tip="返回"
+                    Background="{DynamicResource AcrylicBackgroundFillColorDefaultBrush}"
+                    Content="{ci:FluentIcon &#xE0B0;, FontSize=18}" />
             <Border Height="3"
                     VerticalAlignment="Top"
                     ClipToBounds="True"
