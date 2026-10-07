@@ -1,0 +1,24 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:ClassIsland.Management.Client.ViewModels" xmlns:dto="using:ClassIsland.Management.Contracts"
+ x:Class="ClassIsland.Management.Client.Views.DevicesPage" x:DataType="vm:DevicesViewModel">
+ <ScrollViewer><StackPanel Margin="24,10,24,32" Spacing="20">
+  <TextBlock Classes="title" Text="设备管理" />
+  <TextBlock Classes="muted" Text="查看连接状态、审批加入申请，并调整设备所属班级。设备每隔约 10 秒报告连接状态。" />
+  <TextBox Text="{Binding Search}" PlaceholderText="搜索设备名称或标识" AutomationProperties.Name="搜索设备" />
+  <ComboBox ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter}" />
+  <ListBox ItemsSource="{Binding Filtered}" SelectedItem="{Binding Selected}" SelectionMode="Single" MinHeight="180">
+   <ListBox.ItemTemplate><DataTemplate x:DataType="dto:DeviceInfo"><Grid ColumnDefinitions="*,Auto" Margin="4,8">
+    <StackPanel Spacing="5"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" /><TextBlock Classes="muted" Text="{Binding Status, Converter={StaticResource DisplayName}}" /></StackPanel>
+    <StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="在线" Foreground="#087F5B" IsVisible="{Binding IsOnline}" /><TextBlock Text="离线" Classes="muted" IsVisible="{Binding !IsOnline}" /></StackPanel>
+   </Grid></DataTemplate></ListBox.ItemTemplate>
+  </ListBox>
+  <TextBlock Classes="muted" Text="没有设备？在班级分组中生成加入配置，然后在教室的 ClassIsland 中导入。" />
+  <Border Classes="panel" IsVisible="{Binding Shell.IsAdmin}"><StackPanel Classes="form">
+   <TextBlock Classes="subtitle" Text="编辑所选设备" />
+   <TextBlock Text="设备名称" /><TextBox Text="{Binding EditName}" />
+   <TextBlock Text="所属分组" /><ComboBox ItemsSource="{Binding Shell.Groups.Items}" SelectedItem="{Binding EditGroup}"><ComboBox.ItemTemplate><DataTemplate x:DataType="dto:GroupInfo"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+   <TextBlock Text="访问状态" /><ComboBox ItemsSource="{Binding Statuses}" SelectedItem="{Binding EditStatus}" />
+   <WrapPanel><Button Content="批准加入" Command="{Binding ApproveCommand}" Classes="accent" Margin="0,0,12,0" /><Button Content="保存设备设置" Command="{Binding SaveCommand}" /></WrapPanel>
+  </StackPanel></Border>
+ </StackPanel></ScrollViewer>
+</UserControl>

@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ClassIsland.Management.Client.ViewModels" xmlns:views="using:ClassIsland.Management.Client.Views"
+             xmlns:fa="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
+             xmlns:icons="using:ClassIsland.Core.Icons"
+             x:Class="ClassIsland.Management.Client.Views.MainView" x:DataType="vm:WorkspaceViewModel"
+             Background="#F6F8FB">
+  <Grid RowDefinitions="Auto,Auto,*">
+    <Border Padding="20,14" Background="White" BorderBrush="#E1E6EC" BorderThickness="0,0,0,1">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Content="退出登录" Command="{Binding LogoutCommand}" IsVisible="{Binding IsLoggedIn}" />
+        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <Image Source="avares://ClassIsland.Management.Client/Assets/Logo.png" Width="30" Height="30" />
+          <TextBlock Text="ClassIsland 集控" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+    <StackPanel Grid.Row="1">
+      <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Height="3" />
+      <Border IsVisible="{Binding HasMessage}" Classes="notice" Classes.error="{Binding IsError}" Padding="20,10">
+        <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+      </Border>
+    </StackPanel>
+    <ScrollViewer Grid.Row="2" IsVisible="{Binding !IsLoggedIn}">
+      <StackPanel Classes="form" MaxWidth="420" Margin="24,70,24,32" IsEnabled="{Binding !IsBusy}">
+        <TextBlock Classes="title" Text="连接你的校园" />
+        <TextBlock Classes="muted" Text="使用管理员账户，统一管理各班设备、课表与校园通知。" Margin="0,0,0,18" />
+        <TextBlock Text="服务器地址" />
+        <TextBox Text="{Binding ServerUrl}" PlaceholderText="https://management.example.edu" AutomationProperties.Name="服务器地址" />
+        <TextBlock Text="用户名" />
+        <TextBox Text="{Binding UserName}" AutomationProperties.Name="用户名" />
+        <TextBlock Text="密码" />
+        <TextBox Text="{Binding Password}" PasswordChar="●" AutomationProperties.Name="密码" />
+        <Button Content="登录" Classes="accent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding LoginCommand}" Margin="0,12,0,0" />
+      </StackPanel>
+    </ScrollViewer>
+    <fa:FANavigationView x:Name="Navigation" Grid.Row="2" IsVisible="{Binding IsLoggedIn}"
+                         IsSettingsVisible="False" PaneDisplayMode="Auto" OpenPaneLength="210"
+                         SelectionChanged="Navigation_OnSelectionChanged">
+      <fa:FANavigationView.MenuItems>
+        <fa:FANavigationViewItem Content="校园概览" Tag="overview"><fa:FANavigationViewItem.IconSource><fa:FAFontIconSource Glyph="{x:Static icons:FluentIcons.HomeRegular}" FontFamily="{StaticResource ManagementIcons}" /></fa:FANavigationViewItem.IconSource></fa:FANavigationViewItem>
+        <fa:FANavigationViewItem Content="设备管理" Tag="devices"><fa:FANavigationViewItem.IconSource><fa:FAFontIconSource Glyph="{x:Static icons:FluentIcons.DesktopRegular}" FontFamily="{StaticResource ManagementIcons}" /></fa:FANavigationViewItem.IconSource></fa:FANavigationViewItem>
+        <fa:FANavigationViewItem Content="班级分组" Tag="groups"><fa:FANavigationViewItem.IconSource><fa:FAFontIconSource Glyph="{x:Static icons:FluentIcons.PeopleRegular}" FontFamily="{StaticResource ManagementIcons}" /></fa:FANavigationViewItem.IconSource></fa:FANavigationViewItem>
+        <fa:FANavigationViewItem Content="配置与策略" Tag="resources"><fa:FANavigationViewItem.IconSource><fa:FAFontIconSource Glyph="{x:Static icons:FluentIcons.DocumentRegular}" FontFamily="{StaticResource ManagementIcons}" /></fa:FANavigationViewItem.IconSource></fa:FANavigationViewItem>
+        <fa:FANavigationViewItem Content="通知与任务" Tag="tasks"><fa:FANavigationViewItem.IconSource><fa:FAFontIconSource Glyph="{x:Static icons:FluentIcons.SendRegular}" FontFamily="{StaticResource ManagementIcons}" /></fa:FANavigationViewItem.IconSource></fa:FANavigationViewItem>
+        <fa:FANavigationViewItem Content="操作记录" Tag="audit"><fa:FANavigationViewItem.IconSource><fa:FAFontIconSource Glyph="{x:Static icons:FluentIcons.HistoryRegular}" FontFamily="{StaticResource ManagementIcons}" /></fa:FANavigationViewItem.IconSource></fa:FANavigationViewItem>
+        <fa:FANavigationViewItem Content="设置与账户" Tag="settings"><fa:FANavigationViewItem.IconSource><fa:FAFontIconSource Glyph="{x:Static icons:FluentIcons.SettingsRegular}" FontFamily="{StaticResource ManagementIcons}" /></fa:FANavigationViewItem.IconSource></fa:FANavigationViewItem>
+      </fa:FANavigationView.MenuItems>
+      <Grid RowDefinitions="Auto,*" IsEnabled="{Binding !IsBusy}">
+        <DockPanel Margin="24,12">
+          <Button DockPanel.Dock="Right" Content="刷新" Command="{Binding RefreshCommand}" />
+          <Button x:Name="NavigationButton" DockPanel.Dock="Left" Content="导航" Click="OpenNavigation_OnClick" Margin="0,0,12,0" />
+          <TextBlock Text="{Binding LastRefreshed}" Classes="muted" VerticalAlignment="Center" />
+        </DockPanel>
+        <ContentControl x:Name="PageHost" Grid.Row="1" />
+      </Grid>
+    </fa:FANavigationView>
+  </Grid>
+</UserControl>

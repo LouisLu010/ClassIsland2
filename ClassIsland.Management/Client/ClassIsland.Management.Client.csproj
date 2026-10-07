@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <FluentIconMappingFile>Assets/Fonts/FluentSystemIcons-Resizable.json</FluentIconMappingFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Contracts/ClassIsland.Management.Contracts.csproj" />
+    <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="FluentAvaloniaUI" Version="3.0.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
+    <ProjectReference Include="../../roslyn/IconsMappingGenerator/IconsMappingGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <CompilerVisibleProperty Include="FluentIconMappingFile" />
+    <AdditionalFiles Include="../../ClassIsland.Core/Assets/Fonts/FluentSystemIcons-Resizable.json" />
+    <AvaloniaResource Include="../../ClassIsland.Core/Assets/Fonts/FluentSystemIcons-Resizable.ttf" Link="Assets/FluentSystemIcons.ttf" />
+    <AvaloniaResource Include="../../ClassIsland/Assets/Fonts/HarmonyOS_Sans_SC_Regular.ttf" Link="Assets/HarmonyOS_Sans_SC_Regular.ttf" />
+    <AvaloniaResource Include="../../ClassIsland/Assets/Logos/Main.png" Link="Assets/Logo.png" />
+  </ItemGroup>
+</Project>

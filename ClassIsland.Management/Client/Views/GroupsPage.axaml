@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:ClassIsland.Management.Client.ViewModels" xmlns:dto="using:ClassIsland.Management.Contracts"
+ x:Class="ClassIsland.Management.Client.Views.GroupsPage" x:DataType="vm:GroupsViewModel">
+ <ScrollViewer><StackPanel Margin="24,10,24,32" Spacing="20">
+  <TextBlock Classes="title" Text="班级分组" />
+  <TextBlock Classes="muted" Text="按班级、年级或校区组织设备。每个分组可以发布独立配置和接收统一通知。" />
+  <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"><ListBox.ItemTemplate><DataTemplate x:DataType="dto:GroupInfo">
+   <StackPanel Margin="4,8" Spacing="5"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" /><TextBlock Text="{Binding Description}" Classes="muted" /></StackPanel>
+  </DataTemplate></ListBox.ItemTemplate></ListBox>
+  <Border Classes="panel" IsVisible="{Binding Shell.CanWrite}"><StackPanel Classes="form">
+   <DockPanel><Button DockPanel.Dock="Right" Content="新建分组" Command="{Binding NewCommand}" /><TextBlock Classes="subtitle" Text="分组信息" /></DockPanel>
+   <TextBlock Text="分组名称" /><TextBox Text="{Binding Name}" PlaceholderText="例如：高一（1）班" />
+   <TextBlock Text="说明" /><TextBox Text="{Binding Description}" PlaceholderText="楼栋、教室或负责老师" />
+   <Button Content="保存分组" Command="{Binding SaveCommand}" Classes="accent" />
+   <Separator />
+   <TextBlock Classes="subtitle" Text="邀请设备加入" />
+   <TextBlock Classes="muted" Text="生成并导出配置文件，在班级设备的“设置 → 集控 → 加入管理”中导入，随后到设备管理页批准申请。" />
+   <WrapPanel><Button Content="生成加入配置" Command="{Binding EnrollmentCommand}" Margin="0,0,12,8" /><Button Content="导出配置文件" Click="Export_OnClick" Margin="0,0,12,8" /><Button Content="重置加入码" Command="{Binding RotateCodeCommand}" IsVisible="{Binding Shell.IsAdmin}" Margin="0,0,0,8" /></WrapPanel>
+   <Expander Header="查看配置内容" HorizontalAlignment="Stretch"><TextBox Text="{Binding EnrollmentJson}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" MaxHeight="260" /></Expander>
+   <StackPanel IsVisible="{Binding Shell.IsAdmin}" Spacing="10"><CheckBox Content="确认删除所选空分组" IsChecked="{Binding ConfirmDelete}" /><Button Content="删除分组" Command="{Binding DeleteCommand}" /></StackPanel>
+  </StackPanel></Border>
+ </StackPanel></ScrollViewer>
+</UserControl>

@@ -1,0 +1,31 @@
+using System.Text.Json.Serialization;
+
+namespace ClassIsland.Management.Contracts;
+
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true)]
+[JsonSerializable(typeof(LoginRequest))]
+[JsonSerializable(typeof(LoginResult))]
+[JsonSerializable(typeof(ApiError))]
+[JsonSerializable(typeof(UserInfo))]
+[JsonSerializable(typeof(List<UserInfo>))]
+[JsonSerializable(typeof(CreateUserRequest))]
+[JsonSerializable(typeof(ChangePasswordRequest))]
+[JsonSerializable(typeof(GroupInfo))]
+[JsonSerializable(typeof(List<GroupInfo>))]
+[JsonSerializable(typeof(SaveGroupRequest))]
+[JsonSerializable(typeof(DeviceInfo))]
+[JsonSerializable(typeof(List<DeviceInfo>))]
+[JsonSerializable(typeof(UpdateDeviceRequest))]
+[JsonSerializable(typeof(ResourceInfo))]
+[JsonSerializable(typeof(List<ResourceInfo>))]
+[JsonSerializable(typeof(SaveResourceRequest))]
+[JsonSerializable(typeof(PublishRequest))]
+[JsonSerializable(typeof(CommandRequest))]
+[JsonSerializable(typeof(CommandInfo))]
+[JsonSerializable(typeof(List<CommandInfo>))]
+[JsonSerializable(typeof(AuditInfo))]
+[JsonSerializable(typeof(List<AuditInfo>))]
+[JsonSerializable(typeof(ServerSettings))]
+[JsonSerializable(typeof(DashboardInfo))]
+[JsonSerializable(typeof(string))]
+public partial class ManagementJsonContext : JsonSerializerContext;

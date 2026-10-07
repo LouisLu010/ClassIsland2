@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:ClassIsland.Management.Client.ViewModels" xmlns:dto="using:ClassIsland.Management.Contracts"
+ x:Class="ClassIsland.Management.Client.Views.SettingsPage" x:DataType="vm:SettingsViewModel">
+ <ScrollViewer><StackPanel Margin="24,10,24,32" Spacing="20">
+  <TextBlock Classes="title" Text="设置与账户" />
+  <Border Classes="panel" IsVisible="{Binding Shell.IsAdmin}"><StackPanel Classes="form">
+   <TextBlock Classes="subtitle" Text="校园设置" />
+   <TextBlock Text="组织名称" /><TextBox Text="{Binding OrganizationName}" />
+   <TextBlock Text="网页与配置服务地址" /><TextBox Text="{Binding PublicUrl}" PlaceholderText="https://management.example.edu" />
+   <TextBlock Text="设备连接服务地址" /><TextBox Text="{Binding GrpcUrl}" PlaceholderText="https://devices.example.edu" />
+   <TextBlock Classes="muted" Text="请填写班级设备可以访问的地址。这些地址用于生成加入配置，不会更改服务器的监听端口。" />
+   <ToggleSwitch Content="允许新设备申请加入" IsChecked="{Binding AllowEnrollment}" />
+   <Button Content="保存设置" Command="{Binding SaveCommand}" Classes="accent" />
+  </StackPanel></Border>
+  <Border Classes="panel" IsVisible="{Binding Shell.IsAdmin}"><StackPanel Classes="form">
+   <TextBlock Classes="subtitle" Text="管理成员" />
+   <TextBlock Classes="muted" Text="管理员可审批设备和管理账户；操作员可管理分组、配置与任务；只读成员只能查看。" />
+   <ListBox ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser}"><ListBox.ItemTemplate><DataTemplate x:DataType="dto:UserInfo"><StackPanel Margin="4,8" Spacing="5"><TextBlock Text="{Binding UserName}" FontWeight="SemiBold" /><TextBlock Text="{Binding Role, Converter={StaticResource DisplayName}}" /><TextBlock Text="已停用" IsVisible="{Binding !Enabled}" Classes="muted" /></StackPanel></DataTemplate></ListBox.ItemTemplate></ListBox>
+   <TextBlock Text="新成员用户名" /><TextBox Text="{Binding NewUserName}" />
+   <TextBlock Text="初始密码（至少 12 个字符）" /><TextBox Text="{Binding UserPassword}" PasswordChar="●" />
+   <TextBlock Text="权限" /><ComboBox ItemsSource="{Binding Roles}" SelectedItem="{Binding UserRole}" />
+   <Button Content="添加成员" Command="{Binding CreateUserCommand}" />
+   <CheckBox Content="确认停用所选账户，立即撤销其登录" IsChecked="{Binding ConfirmDisable}" /><Button Content="停用账户" Command="{Binding DisableUserCommand}" />
+  </StackPanel></Border>
+  <Border Classes="panel"><StackPanel Classes="form">
+   <TextBlock Classes="subtitle" Text="修改我的密码" />
+   <TextBlock Text="当前密码" /><TextBox Text="{Binding CurrentPassword}" PasswordChar="●" />
+   <TextBlock Text="新密码（至少 12 个字符）" /><TextBox Text="{Binding NewPassword}" PasswordChar="●" />
+   <Button Content="修改密码并重新登录" Command="{Binding ChangePasswordCommand}" />
+  </StackPanel></Border>
+ </StackPanel></ScrollViewer>
+</UserControl>

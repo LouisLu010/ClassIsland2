@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:ClassIsland.Management.Client.ViewModels" xmlns:dto="using:ClassIsland.Management.Contracts"
+ x:Class="ClassIsland.Management.Client.Views.TasksPage" x:DataType="vm:TasksViewModel">
+ <ScrollViewer><StackPanel Margin="24,10,24,32" Spacing="20">
+  <TextBlock Classes="title" Text="通知与任务" />
+  <TextBlock Classes="muted" Text="发送校园广播、刷新课表，或回收设备配置。离线设备会在重新连接后接收未过期的任务。" />
+  <Border Classes="panel" IsVisible="{Binding Shell.CanWrite}"><StackPanel Classes="form">
+   <TextBlock Classes="subtitle" Text="创建任务" />
+   <TextBlock Text="操作" /><ComboBox ItemsSource="{Binding Types}" SelectedItem="{Binding Type}" />
+   <ToggleSwitch Content="发送给整个分组" IsChecked="{Binding SendToGroup}" />
+   <ComboBox IsVisible="{Binding SendToGroup}" ItemsSource="{Binding Shell.Groups.Items}" SelectedItem="{Binding TargetGroup}" PlaceholderText="选择分组"><ComboBox.ItemTemplate><DataTemplate x:DataType="dto:GroupInfo"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+   <ComboBox IsVisible="{Binding !SendToGroup}" ItemsSource="{Binding Shell.Devices.Items}" SelectedItem="{Binding TargetDevice}" PlaceholderText="选择设备"><ComboBox.ItemTemplate><DataTemplate x:DataType="dto:DeviceInfo"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+   <StackPanel IsVisible="{Binding IsNotification}" Spacing="12">
+    <TextBlock Text="通知标题" /><TextBox Text="{Binding Title}" />
+    <TextBlock Text="通知内容" /><TextBox Text="{Binding Message}" AcceptsReturn="True" MinHeight="100" TextWrapping="Wrap" />
+    <CheckBox Content="紧急通知（置顶显示）" IsChecked="{Binding IsEmergency}" />
+    <CheckBox Content="朗读通知内容" IsChecked="{Binding IsSpeechEnabled}" /><CheckBox Content="播放提示音" IsChecked="{Binding IsSoundEnabled}" />
+    <TextBlock Text="每次显示时长（秒）" /><NumericUpDown Value="{Binding DurationSeconds}" Minimum="1" Maximum="300" FormatString="0" />
+    <TextBlock Text="重复次数" /><NumericUpDown Value="{Binding RepeatCounts}" Minimum="1" Maximum="20" FormatString="0" />
+   </StackPanel>
+   <StackPanel IsVisible="{Binding IsConfigRequest}" Spacing="8"><TextBlock Text="回收内容" /><ComboBox ItemsSource="{Binding ConfigTypes}" SelectedItem="{Binding ConfigType}" /></StackPanel>
+   <CheckBox IsVisible="{Binding IsRestart}" Content="确认重启所选设备的应用，课表显示会短暂中断" IsChecked="{Binding ConfirmRestart}" />
+   <TextBlock Text="计划发送时间（本地时间，留空立即发送）" TextWrapping="Wrap" /><TextBox Text="{Binding ScheduledTime}" PlaceholderText="例如：2026-10-08 08:00" />
+   <Button Content="创建任务" Classes="accent" Command="{Binding SendCommand}" />
+  </StackPanel></Border>
+  <TextBlock Classes="subtitle" Text="任务记录" />
+  <TextBlock Classes="muted" Text="“已下发”表示已写入设备连接，旧版客户端不会返回执行确认。任务在计划时间后的 24 小时内有效。" />
+  <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" MaxHeight="400"><ListBox.ItemTemplate><DataTemplate x:DataType="dto:CommandInfo">
+   <StackPanel Margin="4,8" Spacing="5"><TextBlock FontWeight="SemiBold"><Run Text="{Binding Type, Converter={StaticResource DisplayName}}" /><Run Text=" · " /><Run Text="{Binding Status, Converter={StaticResource DisplayName}}" /></TextBlock><TextBlock Classes="muted" Text="{Binding CreatedAt, Converter={StaticResource LocalTime}}" /><TextBlock Classes="muted" Text="{Binding DeviceName}" /></StackPanel>
+  </DataTemplate></ListBox.ItemTemplate></ListBox>
+  <WrapPanel><Button Content="取消所选待发送任务" Command="{Binding CancelCommand}" IsVisible="{Binding Shell.CanWrite}" Margin="0,0,12,8" /><Button Content="导出回收结果" Click="Export_OnClick" Margin="0,0,0,8" /></WrapPanel>
+  <Expander Header="查看回收结果" HorizontalAlignment="Stretch"><TextBox Text="{Binding Selected.Result}" IsReadOnly="True" AcceptsReturn="True" MinHeight="150" MaxHeight="400" TextWrapping="Wrap" /></Expander>
+ </StackPanel></ScrollViewer>
+</UserControl>

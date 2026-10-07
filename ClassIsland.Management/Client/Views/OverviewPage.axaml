@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:ClassIsland.Management.Client.ViewModels" xmlns:dto="using:ClassIsland.Management.Contracts"
+ x:Class="ClassIsland.Management.Client.Views.OverviewPage" x:DataType="vm:WorkspaceViewModel">
+ <ScrollViewer><StackPanel Margin="24,10,24,32" Spacing="24">
+  <StackPanel Spacing="8"><TextBlock Classes="title" Text="校园概览" /><TextBlock Classes="muted" Text="让每间教室保持同步。先创建班级分组，再邀请设备加入。" /></StackPanel>
+  <WrapPanel>
+   <Border Classes="panel" Width="200" Margin="0,0,12,12"><StackPanel Spacing="10"><TextBlock Classes="muted" Text="已登记设备" /><TextBlock FontSize="36" Text="{Binding Dashboard.TotalDevices}" /></StackPanel></Border>
+   <Border Classes="panel" Width="200" Margin="0,0,12,12"><StackPanel Spacing="10"><TextBlock Classes="muted" Text="当前在线" /><TextBlock FontSize="36" Foreground="#087F5B" Text="{Binding Dashboard.OnlineDevices}" /></StackPanel></Border>
+   <Border Classes="panel" Width="200" Margin="0,0,12,12"><StackPanel Spacing="10"><TextBlock Classes="muted" Text="等待审批" /><TextBlock FontSize="36" Foreground="#9C6500" Text="{Binding Dashboard.PendingDevices}" /></StackPanel></Border>
+   <Border Classes="panel" Width="200" Margin="0,0,12,12"><StackPanel Spacing="10"><TextBlock Classes="muted" Text="等待下发的任务" /><TextBlock FontSize="36" Text="{Binding Dashboard.QueuedCommands}" /></StackPanel></Border>
+  </WrapPanel>
+  <Border Classes="panel"><StackPanel Spacing="12">
+   <TextBlock Classes="subtitle" Text="开始管理" />
+   <TextBlock Text="1. 在“设置与账户”中填写设备能够访问的服务地址。" TextWrapping="Wrap" />
+   <TextBlock Text="2. 在“班级分组”中创建班级，导出加入配置并在 ClassIsland 中导入。" TextWrapping="Wrap" />
+   <TextBlock Text="3. 在“设备管理”中批准新设备，然后发布课表、设置或限制策略。" TextWrapping="Wrap" />
+  </StackPanel></Border>
+  <TextBlock Classes="subtitle" Text="最近动态" />
+  <ItemsControl ItemsSource="{Binding Dashboard.RecentActivity}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="dto:AuditInfo">
+   <Border BorderBrush="#E1E6EC" BorderThickness="0,0,0,1" Padding="0,12"><StackPanel Spacing="4">
+    <TextBlock Text="{Binding Action}" FontWeight="SemiBold" />
+    <TextBlock Classes="muted"><Run Text="{Binding Actor}" /><Run Text=" · " /><Run Text="{Binding Timestamp, Converter={StaticResource LocalTime}}" /></TextBlock>
+   </StackPanel></Border>
+  </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+ </StackPanel></ScrollViewer>
+</UserControl>

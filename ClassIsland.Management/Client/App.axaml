@@ -1,0 +1,33 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fa="clr-namespace:FluentAvalonia.Styling;assembly=FluentAvalonia"
+             xmlns:services="using:ClassIsland.Management.Client.Services"
+             x:Class="ClassIsland.Management.Client.App" RequestedThemeVariant="Light">
+  <Application.Resources>
+    <FontFamily x:Key="ManagementFont">avares://ClassIsland.Management.Client/Assets/HarmonyOS_Sans_SC_Regular.ttf#HarmonyOS Sans SC</FontFamily>
+    <FontFamily x:Key="ManagementIcons">avares://ClassIsland.Management.Client/Assets/FluentSystemIcons.ttf#FluentSystemIcons-Resizable</FontFamily>
+    <services:DisplayNameConverter x:Key="DisplayName" />
+    <services:LocalTimeConverter x:Key="LocalTime" />
+  </Application.Resources>
+  <Application.Styles>
+    <fa:FluentAvaloniaTheme CustomAccentColor="#0078D4" />
+    <Style Selector=":is(TemplatedControl)"><Setter Property="FontFamily" Value="{StaticResource ManagementFont}" /></Style>
+    <Style Selector="TextBlock"><Setter Property="FontFamily" Value="{StaticResource ManagementFont}" /></Style>
+    <Style Selector="TextBlock.title"><Setter Property="FontSize" Value="26" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+    <Style Selector="TextBlock.subtitle"><Setter Property="FontSize" Value="18" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+    <Style Selector="TextBlock.muted"><Setter Property="Foreground" Value="#5E6875" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
+    <Style Selector="Border.panel"><Setter Property="Background" Value="White" /><Setter Property="BorderBrush" Value="#E1E6EC" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Padding" Value="20" /></Style>
+    <Style Selector="Border.notice"><Setter Property="Background" Value="#EAF3FC" /></Style>
+    <Style Selector="Border.notice.error"><Setter Property="Background" Value="#FFF1F0" /></Style>
+    <Style Selector="StackPanel.form"><Setter Property="Spacing" Value="12" /><Setter Property="MaxWidth" Value="760" /><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
+    <Style Selector="Button"><Setter Property="MinHeight" Value="36" /></Style>
+    <Style Selector="TextBox"><Setter Property="MinHeight" Value="38" /></Style>
+    <Style Selector="ComboBox"><Setter Property="MinHeight" Value="38" /><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
+    <Style Selector="ListBox"><Setter Property="MinHeight" Value="100" /><Setter Property="MaxHeight" Value="290" /></Style>
+  </Application.Styles>
+  <Application.DataTemplates>
+    <DataTemplate DataType="{x:Type x:String}" x:DataType="x:String">
+      <TextBlock Text="{Binding ., Converter={StaticResource DisplayName}}" />
+    </DataTemplate>
+  </Application.DataTemplates>
+</Application>

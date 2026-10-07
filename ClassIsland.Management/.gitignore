@@ -1,0 +1,5 @@
+data/
+/Server/wwwroot/
+AppBundle/
+.idea/
+TestResults/

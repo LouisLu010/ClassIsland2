@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:ClassIsland.Management.Client.ViewModels" xmlns:dto="using:ClassIsland.Management.Contracts"
+ x:Class="ClassIsland.Management.Client.Views.AuditPage" x:DataType="vm:WorkspaceViewModel">
+ <ScrollViewer><StackPanel Margin="24,10,24,32" Spacing="20">
+  <TextBlock Classes="title" Text="操作记录" />
+  <TextBlock Classes="muted" Text="查看最近 500 条管理操作与设备事件，按操作人或操作内容搜索。" />
+  <TextBox Text="{Binding AuditSearch}" PlaceholderText="搜索操作记录" />
+  <Button Content="导出当前记录" Click="Export_OnClick" />
+  <ListBox ItemsSource="{Binding FilteredAudit}" SelectedItem="{Binding SelectedAudit}" MaxHeight="600"><ListBox.ItemTemplate><DataTemplate x:DataType="dto:AuditInfo">
+   <StackPanel Margin="4,10" Spacing="6"><TextBlock Text="{Binding Action}" FontWeight="SemiBold" /><TextBlock Classes="muted"><Run Text="{Binding Actor}" /><Run Text=" · " /><Run Text="{Binding Timestamp, Converter={StaticResource LocalTime}}" /></TextBlock><TextBlock Text="{Binding Target}" TextWrapping="Wrap" /></StackPanel>
+  </DataTemplate></ListBox.ItemTemplate></ListBox>
+  <Expander Header="高级详情" HorizontalAlignment="Stretch"><TextBox Text="{Binding SelectedAudit.Detail}" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="100" MaxHeight="300" /></Expander>
+ </StackPanel></ScrollViewer>
+</UserControl>

@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:ClassIsland.Management.Client.ViewModels" xmlns:dto="using:ClassIsland.Management.Contracts"
+ x:Class="ClassIsland.Management.Client.Views.ResourcesPage" x:DataType="vm:ResourcesViewModel">
+ <ScrollViewer><StackPanel Margin="24,10,24,32" Spacing="20">
+  <TextBlock Classes="title" Text="配置与策略" />
+  <TextBlock Classes="muted" Text="上传 ClassIsland 导出的课表、时间表、科目、设置或组件。保存后需发布到分组；课表和组件通常在客户端重新加载或重启后生效，初始默认设置仅用于尚未完成初始化的设备。" />
+  <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"><ListBox.ItemTemplate><DataTemplate x:DataType="dto:ResourceInfo">
+   <StackPanel Margin="4,8" Spacing="5"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" /><TextBlock Classes="muted"><Run Text="{Binding Kind, Converter={StaticResource DisplayName}}" /><Run Text=" · 版本 " /><Run Text="{Binding Version}" /></TextBlock></StackPanel>
+  </DataTemplate></ListBox.ItemTemplate></ListBox>
+  <Border Classes="panel"><StackPanel Classes="form">
+   <DockPanel><Button Content="新建配置" Command="{Binding NewCommand}" DockPanel.Dock="Right" IsVisible="{Binding Shell.CanWrite}" /><TextBlock Classes="subtitle" Text="配置内容" /></DockPanel>
+   <TextBlock Text="配置名称" /><TextBox Text="{Binding Name}" IsReadOnly="{Binding !Shell.CanWrite}" PlaceholderText="例如：秋季学期课表" />
+   <TextBlock Text="配置类型" /><ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" IsEnabled="{Binding Shell.CanWrite}" />
+   <ItemsControl ItemsSource="{Binding Policies}" IsVisible="{Binding IsPolicy}" IsEnabled="{Binding Shell.CanWrite}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PolicyItem"><CheckBox Content="{Binding Label}" IsChecked="{Binding Enabled}" Margin="0,5" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+   <StackPanel IsVisible="{Binding !IsPolicy}" Spacing="10">
+    <WrapPanel><Button Content="导入 JSON 文件" Click="Import_OnClick" Margin="0,0,12,0" IsVisible="{Binding Shell.CanWrite}" /><Button Content="导出 JSON 文件" Click="Export_OnClick" /></WrapPanel>
+    <TextBox Text="{Binding Content}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="200" MaxHeight="400" PlaceholderText="导入配置文件，或粘贴完整 JSON 配置" IsReadOnly="{Binding !Shell.CanWrite}" />
+   </StackPanel>
+   <Button Content="保存新版本" Command="{Binding SaveCommand}" Classes="accent" IsVisible="{Binding Shell.CanWrite}" />
+   <StackPanel Spacing="12" IsVisible="{Binding Shell.CanWrite}">
+    <Separator /><TextBlock Classes="subtitle" Text="发布到班级" />
+    <ComboBox ItemsSource="{Binding Shell.Groups.Items}" SelectedItem="{Binding TargetGroup}" PlaceholderText="选择目标分组"><ComboBox.ItemTemplate><DataTemplate x:DataType="dto:GroupInfo"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+    <Button Content="发布已保存的版本" Command="{Binding PublishCommand}" />
+    <CheckBox Content="确认删除所选未发布配置" IsChecked="{Binding ConfirmDelete}" /><Button Content="删除配置" Command="{Binding DeleteCommand}" />
+   </StackPanel>
+  </StackPanel></Border>
+ </StackPanel></ScrollViewer>
+</UserControl>
