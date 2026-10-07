@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - dev/v2/management
+      - develop/v2/management
       - master
     paths:
       - '.github/workflows/management_ci.yml'

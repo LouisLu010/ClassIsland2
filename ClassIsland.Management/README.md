@@ -119,7 +119,7 @@ dotnet test ClassIsland.Management/UITests/ClassIsland.Management.UITests.csproj
 
 ## GitHub Actions
 
-[`Management CI`](../.github/workflows/management_ci.yml) 在 `dev/v2/management`、`master` 的相关改动 push、相关 PR 和手动触发时运行。各任务只使用只读仓库权限，不需要配置发布证书或仓库 Secret。
+[`Management CI`](../.github/workflows/management_ci.yml) 在 `develop/v2/management`、`dev/v2/management`、`master` 的相关改动 push、相关 PR 和手动触发时运行。远端已有 `dev` 分支，集控开发分支因此使用 `develop/v2/management`。各任务只使用只读仓库权限，不需要配置发布证书或仓库 Secret。
 
 | 任务 | 检查与产物 |
 | --- | --- |
