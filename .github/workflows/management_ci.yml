@@ -1,0 +1,236 @@
+name: Management CI
+
+on:
+  push:
+    branches:
+      - dev/v2/management
+      - master
+    paths:
+      - '.github/workflows/management_ci.yml'
+      - 'ClassIsland.Management/**'
+      - 'ClassIsland.Shared/**'
+      - 'ClassIsland.Core/Assets/Fonts/**'
+      - 'ClassIsland/Assets/Fonts/**'
+      - 'ClassIsland/Assets/Logos/**'
+      - 'roslyn/IconsMappingGenerator/**'
+      - 'global.json'
+      - 'AssemblyInfo.cs'
+      - '*.props'
+      - '*.targets'
+  pull_request:
+    paths:
+      - '.github/workflows/management_ci.yml'
+      - 'ClassIsland.Management/**'
+      - 'ClassIsland.Shared/**'
+      - 'ClassIsland.Core/Assets/Fonts/**'
+      - 'ClassIsland/Assets/Fonts/**'
+      - 'ClassIsland/Assets/Logos/**'
+      - 'roslyn/IconsMappingGenerator/**'
+      - 'global.json'
+      - 'AssemblyInfo.cs'
+      - '*.props'
+      - '*.targets'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: management-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_SDK_VERSION: 10.0.401
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  server_web:
+    name: Server, Web and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_SDK_VERSION }}
+
+      # global.json 的 latestFeature 会选择 runner 上更高的 SDK，CI 中固定实际使用版本。
+      - name: Pin SDK for this job
+        run: dotnet new globaljson --sdk-version "$DOTNET_SDK_VERSION" --roll-forward disable --force
+
+      - name: Test services and API
+        run: >-
+          dotnet test ClassIsland.Management/Tests/ClassIsland.Management.Tests.csproj
+          -c Debug --logger trx
+          --collect:"XPlat Code Coverage"
+          --settings ClassIsland.Management/Tests/coverlet.runsettings
+          --results-directory artifacts/test-results/services
+
+      - name: Require 80 percent server line coverage
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          reports = list(Path("artifacts/test-results/services").rglob("coverage.cobertura.xml"))
+          if len(reports) != 1:
+              raise SystemExit(f"Expected one coverage report, found {len(reports)}.")
+          coverage = ET.parse(reports[0]).getroot()
+          packages = coverage.findall("./packages/package")
+          if len(packages) != 1 or packages[0].get("name") != "ClassIsland.Management.Server":
+              raise SystemExit("Coverage must contain the management server assembly.")
+          rate = float(coverage.attrib["line-rate"])
+          print(f"Management server line coverage: {rate:.2%} (minimum 80%).")
+          if rate < 0.8:
+              raise SystemExit("Management server line coverage is below 80%.")
+          PY
+
+      - name: Test desktop and mobile layouts
+        if: ${{ !cancelled() }}
+        run: >-
+          dotnet test ClassIsland.Management/UITests/ClassIsland.Management.UITests.csproj
+          -c Debug --logger trx
+          --results-directory artifacts/test-results/ui
+
+      - name: Build desktop development host
+        run: dotnet build ClassIsland.Management/Desktop/ClassIsland.Management.Desktop.csproj -c Debug
+
+      - name: Install WebAssembly workload
+        run: dotnet workload install wasm-tools --version "$DOTNET_SDK_VERSION"
+
+      - name: Build web assets
+        run: sh ClassIsland.Management/build-web.sh
+
+      - name: Publish server with web assets
+        run: |
+          dotnet publish ClassIsland.Management/Server/ClassIsland.Management.Server.csproj \
+            -c Debug -r linux-x64 --self-contained false \
+            --output "$RUNNER_TEMP/management-server"
+          test -s "$RUNNER_TEMP/management-server/wwwroot/index.html"
+          test -s "$RUNNER_TEMP/management-server/wwwroot/_framework/dotnet.js"
+          mkdir -p artifacts/packages
+          tar -czf artifacts/packages/management-server-linux-x64.tar.gz \
+            -C "$RUNNER_TEMP/management-server" .
+
+      - name: Upload server and web package
+        uses: actions/upload-artifact@v4
+        with:
+          name: management-server-web-linux-x64
+          path: artifacts/packages/management-server-linux-x64.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload test and coverage reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: management-test-results
+          path: artifacts/test-results
+          if-no-files-found: warn
+          retention-days: 14
+
+  android:
+    name: Android debug APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_SDK_VERSION }}
+
+      - name: Pin SDK for this job
+        run: dotnet new globaljson --sdk-version "$DOTNET_SDK_VERSION" --roll-forward disable --force
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Prepare Android SDK
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
+
+      - name: Install Android workload
+        run: dotnet workload install android --version "$DOTNET_SDK_VERSION"
+
+      - name: Build and sign debug APK
+        run: >-
+          dotnet build ClassIsland.Management/Android/ClassIsland.Management.Android.csproj
+          -c Debug -t:SignAndroidPackage
+          -p:RuntimeIdentifier=android-arm64
+          -p:AndroidPackageFormats=apk
+          -p:AndroidSdkDirectory="$ANDROID_HOME"
+          -p:JavaSdkDirectory="$JAVA_HOME"
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: management-android-arm64-debug
+          path: ClassIsland.Management/Android/bin/Debug/net10.0-android/android-arm64/*-Signed.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  ios:
+    name: iOS Simulator (arm64)
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      # 与仓库现有 iOS CI 使用相同、已验证的 Xcode / workload 组合。
+      DOTNET_SDK_VERSION: 10.0.202
+      XCODE_PATH: /Applications/Xcode_26.3.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select --switch "$XCODE_PATH"
+          xcodebuild -version
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_SDK_VERSION }}
+
+      - name: Pin SDK for this job
+        run: dotnet new globaljson --sdk-version "$DOTNET_SDK_VERSION" --roll-forward disable --force
+
+      - name: Install iOS workload
+        run: dotnet workload install ios --version "$DOTNET_SDK_VERSION"
+
+      - name: Build unsigned simulator app
+        run: >-
+          dotnet build ClassIsland.Management/iOS/ClassIsland.Management.iOS.csproj
+          -c Debug -p:RuntimeIdentifier=iossimulator-arm64
+          -p:EnableCodeSigning=false
+
+      # 先打包以保留 .app 中的符号链接和可执行权限；此产物仅供模拟器使用。
+      - name: Archive simulator app
+        run: |
+          app_directory=ClassIsland.Management/iOS/bin/Debug/net10.0-ios/iossimulator-arm64
+          test -d "$app_directory/ClassIsland.Management.iOS.app"
+          mkdir -p artifacts/packages
+          tar -czf artifacts/packages/management-ios-simulator-arm64.tar.gz \
+            -C "$app_directory" ClassIsland.Management.iOS.app
+
+      - name: Upload simulator app
+        uses: actions/upload-artifact@v4
+        with:
+          name: management-ios-simulator-arm64
+          path: artifacts/packages/management-ios-simulator-arm64.tar.gz
+          if-no-files-found: error
+          retention-days: 14

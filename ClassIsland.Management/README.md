@@ -116,3 +116,15 @@ dotnet test ClassIsland.Management/UITests/ClassIsland.Management.UITests.csproj
 ```
 
 平台应用的完整构建需要上文对应的工具链；通过共享 UI 编译或单元测试不代表已完成移动真机验证。
+
+## GitHub Actions
+
+[`Management CI`](../.github/workflows/management_ci.yml) 在 `dev/v2/management`、`master` 的相关改动 push、相关 PR 和手动触发时运行。各任务只使用只读仓库权限，不需要配置发布证书或仓库 Secret。
+
+| 任务 | 检查与产物 |
+| --- | --- |
+| Server, Web and tests | 业务/API 测试、服务端行覆盖率至少 80%、共享界面测试、桌面宿主编译、网页与 Linux x64 服务端包 |
+| Android debug APK | .NET 10、JDK 21、Android SDK 36，生成带调试签名的 arm64 APK |
+| iOS Simulator | 固定 .NET SDK/工作负载 10.0.202 和 Xcode 26.3，生成 arm64 模拟器 `.app` 压缩包 |
+
+Actions 页面保留构建产物和 TRX/Cobertura 测试报告 14 天。服务端包包含网页文件，运行需要 .NET 10 ASP.NET Core Runtime；启动前仍需配置初始管理员密码。Android APK 使用调试签名，iOS 产物仅用于 Apple Silicon 模拟器，不是可在真机安装的 IPA。工作流不会创建 GitHub Release 或部署服务器。
