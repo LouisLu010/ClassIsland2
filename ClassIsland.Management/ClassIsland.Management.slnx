@@ -1,0 +1,11 @@
+<Solution>
+  <Project Path="Contracts/ClassIsland.Management.Contracts.csproj" />
+  <Project Path="Server/ClassIsland.Management.Server.csproj" />
+  <Project Path="Client/ClassIsland.Management.Client.csproj" />
+  <Project Path="Desktop/ClassIsland.Management.Desktop.csproj" />
+  <Project Path="Browser/ClassIsland.Management.Browser.csproj" />
+  <Project Path="Android/ClassIsland.Management.Android.csproj" />
+  <Project Path="iOS/ClassIsland.Management.iOS.csproj" />
+  <Project Path="Tests/ClassIsland.Management.Tests.csproj" />
+  <Project Path="UITests/ClassIsland.Management.UITests.csproj" />
+</Solution>
