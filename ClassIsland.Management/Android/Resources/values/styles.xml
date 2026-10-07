@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <style name="ManagementTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
+  <style name="ManagementTheme" parent="Theme.AppCompat.Light.NoActionBar">
     <item name="android:windowLightStatusBar">true</item>
     <item name="android:statusBarColor">#F6F8FB</item>
     <item name="android:navigationBarColor">#F6F8FB</item>

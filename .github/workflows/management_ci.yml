@@ -82,7 +82,8 @@ jobs:
           from pathlib import Path
           import xml.etree.ElementTree as ET
 
-          reports = list(Path("artifacts/test-results/services").rglob("coverage.cobertura.xml"))
+          # TRX 会在 In/ 下复制附件，只检查 collector 目录中的原始报告。
+          reports = list(Path("artifacts/test-results/services").glob("*/coverage.cobertura.xml"))
           if len(reports) != 1:
               raise SystemExit(f"Expected one coverage report, found {len(reports)}.")
           coverage = ET.parse(reports[0]).getroot()
