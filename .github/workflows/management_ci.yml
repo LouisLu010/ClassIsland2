@@ -187,13 +187,15 @@ jobs:
           retention-days: 14
 
   ios:
-    name: iOS Simulator (arm64)
+    name: iOS Device IPA (arm64, Mono interpreter)
     runs-on: macos-26
     timeout-minutes: 45
     env:
       # 与仓库现有 iOS CI 使用相同、已验证的 Xcode / workload 组合。
       DOTNET_SDK_VERSION: 10.0.202
       XCODE_PATH: /Applications/Xcode_26.3.app/Contents/Developer
+      IOS_RUNTIME_IDENTIFIER: ios-arm64
+      IPA_PATH: ${{ github.workspace }}/artifacts/packages/ClassIsland.Management.ipa
     steps:
       - uses: actions/checkout@v4
         with:
@@ -214,25 +216,55 @@ jobs:
       - name: Install iOS workload
         run: dotnet workload install ios --version "$DOTNET_SDK_VERSION"
 
-      - name: Build unsigned simulator app
+      - name: Prepare iOS artifact directory
+        run: mkdir -p "$(dirname "$IPA_PATH")"
+
+      - name: Build unsigned device IPA with Mono interpreter
         run: >-
-          dotnet build ClassIsland.Management/iOS/ClassIsland.Management.iOS.csproj
-          -c Debug -p:RuntimeIdentifier=iossimulator-arm64
+          dotnet publish ClassIsland.Management/iOS/ClassIsland.Management.iOS.csproj
+          -c Release
+          -p:RuntimeIdentifier="$IOS_RUNTIME_IDENTIFIER"
+          -p:UseInterpreter=true
+          -p:PublishAot=false
           -p:EnableCodeSigning=false
+          -p:ArchiveOnBuild=false
+          -p:BuildIpa=true
+          -p:IpaPackagePath="$IPA_PATH"
+          -p:DebugSymbols=false
+          -p:DebugType=None
 
-      # 先打包以保留 .app 中的符号链接和可执行权限；此产物仅供模拟器使用。
-      - name: Archive simulator app
+      - name: Verify device IPA and Mono interpreter
         run: |
-          app_directory=ClassIsland.Management/iOS/bin/Debug/net10.0-ios/iossimulator-arm64
-          test -d "$app_directory/ClassIsland.Management.iOS.app"
-          mkdir -p artifacts/packages
-          tar -czf artifacts/packages/management-ios-simulator-arm64.tar.gz \
-            -C "$app_directory" ClassIsland.Management.iOS.app
+          set -euo pipefail
+          test -f "$IPA_PATH"
 
-      - name: Upload simulator app
+          runtime_entry="ClassIsland.Management/iOS/obj/Release/net10.0-ios/$IOS_RUNTIME_IDENTIFIER/linker-cache/main.arm64.mm"
+          test -f "$runtime_entry"
+          grep -Eq '^[[:space:]]*mono_jit_set_aot_mode[[:space:]]*\([[:space:]]*MONO_AOT_MODE_INTERP[[:space:]]*\)[[:space:]]*;' "$runtime_entry"
+
+          verification_directory="$RUNNER_TEMP/management-ios-ipa"
+          rm -rf "$verification_directory"
+          mkdir -p "$verification_directory"
+          ditto -x -k "$IPA_PATH" "$verification_directory"
+          app_bundle="$verification_directory/Payload/ClassIsland.Management.iOS.app"
+          test -d "$app_bundle"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app_bundle/Info.plist")" = 'cn.classisland.management'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$app_bundle/Info.plist")" = '15.0'
+
+          app_binary="$app_bundle/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app_bundle/Info.plist")"
+          file "$app_binary" | grep -q 'arm64'
+          if [[ -e "$app_bundle/embedded.mobileprovision" || -d "$app_bundle/_CodeSignature" ]]; then
+            echo "::error::The management IPA must remain unsigned for external signing"
+            exit 1
+          fi
+          shasum -a 256 "$IPA_PATH" > "$IPA_PATH.sha256"
+
+      - name: Upload device IPA
         uses: actions/upload-artifact@v4
         with:
-          name: management-ios-simulator-arm64
-          path: artifacts/packages/management-ios-simulator-arm64.tar.gz
+          name: management-ios-arm64-interpreter-ipa
+          path: |
+            ${{ env.IPA_PATH }}
+            ${{ env.IPA_PATH }}.sha256
           if-no-files-found: error
           retention-days: 14

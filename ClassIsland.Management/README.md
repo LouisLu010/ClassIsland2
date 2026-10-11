@@ -72,11 +72,13 @@ dotnet workload install android
 dotnet build ClassIsland.Management/Android/ClassIsland.Management.Android.csproj -c Debug
 
 dotnet workload install ios
-dotnet build ClassIsland.Management/iOS/ClassIsland.Management.iOS.csproj -c Debug \
-  -p:RuntimeIdentifier=iossimulator-arm64 -p:EnableCodeSigning=false
+dotnet publish ClassIsland.Management/iOS/ClassIsland.Management.iOS.csproj -c Release \
+  -p:RuntimeIdentifier=ios-arm64 -p:UseInterpreter=true -p:PublishAot=false \
+  -p:EnableCodeSigning=false -p:BuildIpa=true \
+  -p:IpaPackagePath=./ClassIsland.Management.ipa
 ```
 
-Android 还需要匹配的 Android SDK/JDK。iOS 需要与 .NET iOS 工作负载匹配的 Xcode；Intel Mac 使用 `iossimulator-x64`。真机使用 `ios-arm64` 并配置开发签名。管理员应用不引用课表播放器及 SoundFlow，因此没有主应用的仅真机音频库限制。发布到应用商店前仍需配置正式图标、开发者团队、签名及隐私申报。
+Android 还需要匹配的 Android SDK/JDK。iOS 需要与 .NET iOS 工作负载匹配的 Xcode。管理员应用不引用课表播放器及 SoundFlow，因此支持 `ios-arm64` 真机架构。上面的命令会生成使用 Mono interpreter 的 unsigned IPA；安装到 iPhone/iPad 前需要使用开发或企业签名重新签名。发布到应用商店前仍需配置正式图标、开发者团队、签名及隐私申报。
 
 ## 连接班级设备
 
@@ -125,6 +127,6 @@ dotnet test ClassIsland.Management/UITests/ClassIsland.Management.UITests.csproj
 | --- | --- |
 | Server, Web and tests | 业务/API 测试、服务端行覆盖率至少 80%、共享界面测试、桌面宿主编译、网页与 Linux x64 服务端包 |
 | Android debug APK | .NET 10、JDK 21、Android SDK 36，生成带调试签名的 arm64 APK |
-| iOS Simulator | 固定 .NET SDK/工作负载 10.0.202 和 Xcode 26.3，生成 arm64 模拟器 `.app` 压缩包 |
+| iOS Device IPA | 固定 .NET SDK/工作负载 10.0.202 和 Xcode 26.3，使用 Mono interpreter 生成 `ios-arm64` unsigned IPA 及 SHA-256 校验文件 |
 
-Actions 页面保留构建产物和 TRX/Cobertura 测试报告 14 天。服务端包包含网页文件，运行需要 .NET 10 ASP.NET Core Runtime；启动前仍需配置初始管理员密码。Android APK 使用调试签名，iOS 产物仅用于 Apple Silicon 模拟器，不是可在真机安装的 IPA。工作流不会创建 GitHub Release 或部署服务器。
+Actions 页面保留构建产物和 TRX/Cobertura 测试报告 14 天。服务端包包含网页文件，运行需要 .NET 10 ASP.NET Core Runtime；启动前仍需配置初始管理员密码。Android APK 使用调试签名，iOS 产物是面向真机架构的 unsigned IPA，安装前需要外部签名。工作流不会创建 GitHub Release 或部署服务器。
